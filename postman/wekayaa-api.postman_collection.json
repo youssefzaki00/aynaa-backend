@@ -1,0 +1,672 @@
+{
+	"info": {
+		"_postman_id": "wekayaa-api-123456",
+		"name": "Wekayaa API",
+		"description": "API requests for testing the Wekayaa Parental Control & Content Filtering Backend.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Public / Device",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Sync Device (Get Keywords & Whitelist)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{apiKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/sync",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"sync"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Uninstall Requests",
+			"item": [
+				{
+					"name": "Submit Uninstall Request (With Images)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{apiKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "deviceId",
+									"value": "{{deviceId}}",
+									"type": "text"
+								},
+								{
+									"key": "reason",
+									"value": "I need to remove this for debugging purposes.",
+									"type": "text"
+								},
+								{
+									"key": "images",
+									"type": "file",
+									"src": []
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseUrl}}/uninstall/request",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"uninstall",
+								"request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check Uninstall Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{apiKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/uninstall/status?deviceId={{deviceId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"uninstall",
+								"status"
+							],
+							"query": [
+								{
+									"key": "deviceId",
+									"value": "{{deviceId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Suggestions",
+			"item": [
+				{
+					"name": "Submit Suggestion",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{apiKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"deviceId\": \"{{deviceId}}\",\n    \"type\": \"BLOCK_WORD\",\n    \"content\": \"badword\",\n    \"note\": \"Please block this word immediately.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/suggestions",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"suggestions"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin Panel",
+			"item": [
+				{
+					"name": "List All Uninstall Requests",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/uninstall/admin/requests?status=PENDING",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"uninstall",
+								"admin",
+								"requests"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "PENDING"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Review Uninstall Request",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"APPROVED\",\n    \"adminNote\": \"Valid reason provided.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/uninstall/admin/review/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"uninstall",
+								"admin",
+								"review",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Replace with Request ID from List Requests call"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "List All Suggestions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/suggestions/admin?status=PENDING",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"suggestions",
+								"admin"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "PENDING"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Review Suggestion",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"APPROVED\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/suggestions/admin/review/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"suggestions",
+								"admin",
+								"review",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Replace with Suggestion ID from List Suggestions call"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin - Keyword Management",
+			"item": [
+				{
+					"name": "List Keywords",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/keywords?page=1&limit=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"keywords"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								},
+								{
+									"key": "category",
+									"value": "PORN",
+									"disabled": true
+								},
+								{
+									"key": "isEnabled",
+									"value": "true",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Keyword",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"word\": \"violence\",\n    \"category\": \"VIOLENCE\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/keywords",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"keywords"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Keyword",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"word\": \"updated-word\",\n    \"category\": \"OTHER\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/keywords/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"keywords",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Replace with Keyword ID"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Keyword (Enable/Disable)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/keywords/:id/toggle",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"keywords",
+								":id",
+								"toggle"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Replace with Keyword ID"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Keyword",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/keywords/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"keywords",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Replace with Keyword ID"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Admin - Whitelist Management",
+			"item": [
+				{
+					"name": "List Whitelist Apps",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/whitelist?page=1&limit=50",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"whitelist"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add App to Whitelist",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"packageName\": \"com.example.app\",\n    \"appName\": \"Example App\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/whitelist",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"whitelist"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Whitelist App",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"appName\": \"Updated App Name\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/whitelist/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"whitelist",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Replace with App ID"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove from Whitelist",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/whitelist/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"whitelist",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Replace with App ID"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000/api/v1"
+		},
+		{
+			"key": "apiKey",
+			"value": "wekayaa-api-secret-key-2024-change-me"
+		},
+		{
+			"key": "adminKey",
+			"value": "wekayaa-admin-secret-key-2024-change-me"
+		},
+		{
+			"key": "deviceId",
+			"value": "test-device-12345"
+		}
+	]
+}
