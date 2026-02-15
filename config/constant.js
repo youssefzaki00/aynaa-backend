@@ -43,4 +43,9 @@ module.exports = {
   VALIDATION_LIMITS,
   JWT_SECRET: process.env.JWT_SECRET || 'fallback_secret_should_change_in_prod',
   JWT_EXPIRE: '30d',
+  ALLOWED_ORIGINS: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://dashboard.wekayaa.com'
+  ],
 };
