@@ -14,7 +14,163 @@ http://localhost:5000/api/v1
 Authorization: Bearer <your-jwt-token>
 ```
 
+```
+
+---
+
+## � Getting Started
+
+### Creating Your First Admin User
+
+Before you can use the API, you need to create an admin user. **There is no public registration endpoint** for security reasons.
+
+**Run this command in your terminal:**
+```bash
+npm run create-admin <username> <password>
+```
+
+**Example:**
+```bash
+npm run create-admin admin MySecurePassword123
+```
+
+**Important Notes:**
+- Username will be automatically converted to lowercase
+- Password must be at least 8 characters
+- The script will hash your password securely using bcrypt
+- You can create multiple admin users with different usernames
+
+### Your First Login
+
+After creating an admin user, test the login:
+
+```bash
+curl -X POST http://localhost:5000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"MySecurePassword123"}'
+```
+
+You'll receive a response with your JWT token:
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIs...",
+    "admin": {
+      "id": "...",
+      "username": "admin",
+      "role": "superadmin"
+    }
+  }
+}
+```
+
+Save this token - you'll need it for all admin requests!
+
+---
+
+## �🔐 Auth Endpoints
+
+### 1. Admin Login
+```http
+POST /auth/login
+```
+
+**Description:** Authenticate an admin user and receive a JWT token for subsequent requests.
+
+**Request Body:**
+```json
+{
+  "username": "admin",
+  "password": "your-password"
+}
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "admin": {
+      "id": "65ae1234567890abcdef1234",
+      "username": "admin",
+      "role": "superadmin"
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+**400 Bad Request** - Missing credentials:
+```json
+{
+  "success": false,
+  "message": "Please provide username and password"
+}
+```
+
+**401 Unauthorized** - Invalid credentials:
+```json
+{
+  "success": false,
+  "message": "Invalid credentials"
+}
+```
+
+**Notes:**
+- Username is case-insensitive (automatically converted to lowercase)
+- Token expires in 30 days
+- Store the token securely and include it in all subsequent admin requests
+
+---
+
+### 2. Get Current Admin Profile
+```http
+GET /auth/me
+```
+
+**Description:** Retrieve the currently authenticated admin's profile information.
+
+**Headers:**
+```http
+Authorization: Bearer <your-jwt-token>
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "message": "Admin profile retrieved",
+  "data": {
+    "admin": {
+      "id": "65ae1234567890abcdef1234",
+      "username": "admin",
+      "role": "superadmin",
+      "lastLogin": "2024-02-15T21:30:00.000Z"
+    }
+  }
+}
+```
+
+**Error Responses:**
+
+**401 Unauthorized** - Missing or invalid token:
+```json
+{
+  "success": false,
+  "message": "Not authorized to access this route"
+}
+```
+
+---
+
 ## 📊 Categories Management
+
+> **⚠️ Authentication Required:** All endpoints in this section require a valid JWT token in the `Authorization: Bearer <token>` header.
 
 ### 1. Get All Categories
 ```http
@@ -201,6 +357,8 @@ DELETE /admin/categories/:id
 
 ## 🔑 Keywords Management
 
+> **⚠️ Authentication Required:** All endpoints in this section require a valid JWT token in the `Authorization: Bearer <token>` header.
+
 ### 1. Get All Keywords
 ```http
 GET /admin/keywords?page=1&limit=50&categoryId=uuid-here&isEnabled=true
@@ -358,6 +516,8 @@ DELETE /admin/keywords/:id
 
 ## 📱 Whitelist Management
 
+> **⚠️ Authentication Required:** All endpoints in this section require a valid JWT token in the `Authorization: Bearer <token>` header.
+
 ### 1. Get All Whitelist Apps
 ```http
 GET /admin/whitelist?page=1&limit=50
@@ -470,6 +630,8 @@ DELETE /admin/whitelist/:id
 
 ## 💡 Suggestions Management
 
+> **⚠️ Authentication Required:** Admin endpoints require JWT token. Public submission uses `x-api-key`.
+
 ### 1. Get All Suggestions
 ```http
 GET /admin/suggestions?status=PENDING&type=BLOCK_WORD&page=1&limit=20
@@ -540,6 +702,8 @@ PATCH /admin/suggestions/review/:id
 ---
 
 ## 🎨 Customization Requests Management
+
+> **⚠️ Authentication Required:** Admin endpoints require JWT token. Public submission uses `x-api-key`.
 
 ### 1. Get All Customization Requests
 ```http
@@ -615,6 +779,8 @@ PATCH /admin/customization/review/:id
 ---
 
 ## 🗑️ Uninstall Requests Management
+
+> **⚠️ Authentication Required:** Admin endpoints require JWT token. Public submission uses `x-api-key`.
 
 ### 1. Get All Uninstall Requests
 ```http
@@ -769,19 +935,36 @@ All paginated responses include:
 ```
 
 ### Authentication
-All admin endpoints require the `x-admin-key` header. Set this in your axios/fetch config:
+All admin endpoints (except `/auth/login`) require a valid JWT token in the `Authorization` header.
 
+**How to authenticate:**
+1. Login via `POST /auth/login` to get your token
+2. Include the token in all subsequent requests
+
+**Example with Axios:**
 ```javascript
-// Axios example
-axios.defaults.headers.common['x-admin-key'] = 'your-admin-key';
+// After login, store the token
+const token = loginResponse.data.token;
 
-// Fetch example
-fetch(url, {
+// Set default header for all requests
+axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+// Or per-request
+axios.get('/admin/categories', {
   headers: {
-    'x-admin-key': 'your-admin-key',
+    'Authorization': `Bearer ${token}`
+  }
+});
+```
+
+**Example with Fetch:**
+```javascript
+fetch('http://localhost:5000/api/v1/admin/categories', {
+  headers: {
+    'Authorization': `Bearer ${token}`,
     'Content-Type': 'application/json'
   }
-})
+});
 ```
 
 ### CORS

@@ -3,6 +3,12 @@ const crypto = require('crypto');
 
 const globalWhitelistSchema = new mongoose.Schema(
   {
+    uuid: {
+      type: String,
+      default: () => crypto.randomUUID(),
+      unique: true,
+      index: true,
+    },
     packageName: {
       type: String,
       required: [true, 'Package name is required'],

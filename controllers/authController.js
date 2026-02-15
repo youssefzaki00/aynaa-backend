@@ -24,17 +24,27 @@ const login = async (req, res, next) => {
       return sendError(res, 400, 'Please provide username and password');
     }
 
-    // Check for admin
-    const admin = await Admin.findOne({ username }).select('+password');
+    // Lowercase username to match schema (which has lowercase: true)
+    const normalizedUsername = username.toLowerCase().trim();
 
+    // Check for admin
+    console.log(`Attempting login for username: '${normalizedUsername}'`);
+    const admin = await Admin.findOne({ username: normalizedUsername }).select('+password');
+    
     if (!admin) {
+      console.log('User not found in database.');
       return sendError(res, 401, 'Invalid credentials');
     }
 
+    console.log('User found in database:', admin.username);
+    console.log('Stored hashed password:', admin.password);
+
     // Check password
     const isMatch = await admin.matchPassword(password);
+    console.log('Password match result:', isMatch);
 
     if (!isMatch) {
+      console.log('Password mismatch!');
       return sendError(res, 401, 'Invalid credentials');
     }
 

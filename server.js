@@ -23,16 +23,17 @@ const { ALLOWED_ORIGINS } = require('./config/constant');
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (mobile apps, Postman, etc.)
+console.log('🔔 Incoming Request Origin:', origin);      // Allow requests with no origin (mobile apps, Postman, etc.)
       if (!origin) return callback(null, true);
 
       if (ALLOWED_ORIGINS.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
         callback(null, true);
       } else {
+        console.error(`🚫 Blocked by CORS: ${origin}`);
         callback(new Error('Not allowed by CORS'));
       }
     },
-    credentials: true,
+    credentials: false,
   })
 );
 
