@@ -33,7 +33,19 @@ const VALIDATION_LIMITS = {
   MAX_WORD_LENGTH: 100,
   MAX_PACKAGE_NAME_LENGTH: 200,
 };
+const envOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') // حول النص لمصفوفة
+  : [];
 
+// 2. دي القيم الثابتة اللي عايزها دايماً موجودة
+const defaultOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'https://dashboard.wekayaa.com'
+];
+
+// 3. ادمج الاثنين مع بعض (عشان تضمن إن كله شغال)
+const FINAL_ALLOWED_ORIGINS = [...new Set([...envOrigins, ...defaultOrigins])]
 module.exports = {
   SUGGESTION_TYPES,
   CUSTOMIZATION_TYPES,
@@ -43,9 +55,5 @@ module.exports = {
   VALIDATION_LIMITS,
   JWT_SECRET: process.env.JWT_SECRET || 'fallback_secret_should_change_in_prod',
   JWT_EXPIRE: '30d',
-  ALLOWED_ORIGINS: [
-    'http://localhost:3000',
-    'http://localhost:5173',
-    'https://dashboard.wekayaa.com'
-  ],
+  ALLOWED_ORIGINS: FINAL_ALLOWED_ORIGINS,
 };
