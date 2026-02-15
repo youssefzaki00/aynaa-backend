@@ -1,9 +1,16 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const uninstallRequestSchema = new mongoose.Schema(
   {
+    uuid: {
+      type: String,
+      default: () => crypto.randomUUID(),
+      unique: true,
+      index: true,
+    },
     deviceId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       ref: 'Device',
       required: [true, 'Device ID is required'],
     },
@@ -36,6 +43,15 @@ const uninstallRequestSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: {
+      transform: (doc, ret) => {
+        ret.id = ret.uuid;
+        delete ret._id;
+        delete ret.uuid;
+        delete ret.__v;
+        return ret;
+      },
+    },
   }
 );
 

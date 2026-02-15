@@ -34,7 +34,7 @@ wekayaa-backend/
 ├── utils/               # Helper functions
 ├── .env.example         # Environment variables template
 ├── server.js            # Express server
-└── seed.js              # Database seeding script
+└── scripts/             # Utility scripts (e.g., seeding)
 ```
 
 ## 🛠️ Installation
@@ -89,8 +89,7 @@ npm run seed
 ```
 
 This will populate the database with:
-- 5 sample keywords
-- 2 whitelist apps
+- 5 default categories (PORN, GAMBLING, ATHEISM, VIOLENCE, OTHER)
 
 ### 5. Start the server
 
@@ -204,6 +203,50 @@ Body:
 }
 ```
 
+### ⚙️ Customization Routes
+
+#### Submit Device Customization Request
+```
+POST /api/v1/customization/request
+Content-Type: application/json
+x-api-key: your-api-key
+
+Body:
+{
+  "deviceId": "unique-device-id",
+  "type": "CUSTOM_BLOCK_KEYWORD", // CUSTOM_ALLOW_KEYWORD, CUSTOM_WHITELIST_APP, CUSTOM_BLACKLIST_APP
+  "content": "keyword_or_package_name",
+  "reason": "Reason for request", 
+  "appName": "Optional App Name"
+}
+```
+
+#### Check Customization Status
+```
+GET /api/v1/customization/status?deviceId=xxx
+x-api-key: your-api-key
+```
+
+#### Admin: List Customization Requests
+```
+GET /api/v1/admin/customization/requests?status=PENDING
+x-admin-key: your-admin-key
+```
+
+#### Admin: Review Customization Request
+*Approving a request automatically updates the device's configuration.*
+```
+PATCH /api/v1/admin/customization/review/:id
+Content-Type: application/json
+x-admin-key: your-admin-key
+
+Body:
+{
+  "status": "APPROVED",
+  "adminNote": "Approved and applied."
+}
+```
+
 ## 🔒 Security Features
 
 - **Helmet:** Security headers
@@ -254,6 +297,15 @@ Body:
 - `content` (String)
 - `note` (String)
 - `status` (Enum: PENDING, APPROVED, REJECTED)
+
+### CustomizationRequest
+- `deviceId` (String, Ref: Device)
+- `type` (Enum: CUSTOM_BLOCK_KEYWORD, CUSTOM_ALLOW_KEYWORD, CUSTOM_WHITELIST_APP, CUSTOM_BLACKLIST_APP)
+- `content` (String)
+- `reason` (String)
+- `status` (Enum: PENDING, APPROVED, REJECTED)
+- `adminNote` (String)
+- `reviewedAt` (Date)
 
 ## 🧪 Testing
 

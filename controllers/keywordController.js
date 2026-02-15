@@ -1,5 +1,8 @@
 const Keyword = require('../models/Keyword');
+const Category = require('../models/Category');
 const { sendSuccess, sendError } = require('../utils/response');
+const { executePaginatedQuery } = require('../utils/pagination');
+const { normalizeWord, validateRequiredFields } = require('../utils/validation');
 
 /**
  * Create a new keyword
@@ -7,29 +10,42 @@ const { sendSuccess, sendError } = require('../utils/response');
  */
 const createKeyword = async (req, res, next) => {
   try {
-    const { word, category } = req.body;
+    const { word, categoryId } = req.body;
 
-    if (!word || !category) {
-      return sendError(res, 400, 'Word and category are required');
+    // Validate required fields
+    const validation = validateRequiredFields(req.body, ['word', 'categoryId']);
+    if (!validation.valid) {
+      return sendError(res, 400, `Missing required fields: ${validation.missing.join(', ')}`);
     }
 
-    // Check valid category
-    const validCategories = ['PORN', 'GAMBLING', 'ATHEISM', 'VIOLENCE', 'OTHER'];
-    if (!validCategories.includes(category)) {
-      return sendError(res, 400, 'Invalid category');
+    // Verify category exists
+    const category = await Category.findOne({ uuid: categoryId });
+    if (!category) {
+      return sendError(res, 404, 'Category not found');
+    }
+
+    if (!category.isActive) {
+      return sendError(res, 400, 'Cannot create keyword with inactive category');
     }
 
     const keyword = await Keyword.create({
-      word: word.toLowerCase().trim(),
-      category,
+      word: normalizeWord(word),
+      category: category._id,
       isEnabled: true,
     });
 
+    // Populate category for response
+    await keyword.populate('category');
+
     sendSuccess(res, 201, 'Keyword created successfully', {
       keyword: {
-        id: keyword._id,
+        id: keyword.uuid,
         word: keyword.word,
-        category: keyword.category,
+        category: {
+          id: category.uuid,
+          name: category.name,
+          displayName: category.displayName,
+        },
         isEnabled: keyword.isEnabled,
       },
     });
@@ -40,32 +56,48 @@ const createKeyword = async (req, res, next) => {
 
 /**
  * Get all keywords with optional filters
- * GET /api/v1/admin/keywords?category=PORN&isEnabled=true&page=1&limit=50
+ * GET /api/v1/admin/keywords?categoryId=xxx&isEnabled=true&page=1&limit=50
  */
 const getKeywords = async (req, res, next) => {
   try {
-    const { category, isEnabled, page = 1, limit = 50 } = req.query;
+    const { categoryId, isEnabled } = req.query;
 
     const filter = {};
-    if (category) filter.category = category;
+    
+    // Filter by category if provided
+    if (categoryId) {
+      const category = await Category.findOne({ uuid: categoryId });
+      if (!category) {
+        return sendError(res, 404, 'Category not found');
+      }
+      filter.category = category._id;
+    }
+    
     if (isEnabled !== undefined) filter.isEnabled = isEnabled === 'true';
 
-    const keywords = await Keyword.find(filter)
-      .select('-__v')
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
+    const { items: keywords, pagination } = await executePaginatedQuery({
+      model: Keyword,
+      filter,
+      query: req.query,
+      populate: {
+        path: 'category',
+        select: 'uuid name displayName -_id',
+      },
+    });
 
-    const total = await Keyword.countDocuments(filter);
+    // Transform keywords to use category.id instead of category.uuid
+    const transformedKeywords = keywords.map(keyword => {
+      const keywordObj = keyword.toJSON();
+      if (keywordObj.category) {
+        keywordObj.category.id = keywordObj.category.uuid;
+        delete keywordObj.category.uuid;
+      }
+      return keywordObj;
+    });
 
     sendSuccess(res, 200, 'Keywords retrieved successfully', {
-      keywords,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
+      keywords: transformedKeywords,
+      pagination,
     });
   } catch (error) {
     next(error);
@@ -79,29 +111,40 @@ const getKeywords = async (req, res, next) => {
 const updateKeyword = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { word, category } = req.body;
+    const { word, categoryId } = req.body;
 
-    const keyword = await Keyword.findById(id);
+    const keyword = await Keyword.findOne({ uuid: id });
     if (!keyword) {
       return sendError(res, 404, 'Keyword not found');
     }
 
-    if (word) keyword.word = word.toLowerCase().trim();
-    if (category) {
-      const validCategories = ['PORN', 'GAMBLING', 'ATHEISM', 'VIOLENCE', 'OTHER'];
-      if (!validCategories.includes(category)) {
-        return sendError(res, 400, 'Invalid category');
+    if (word) keyword.word = normalizeWord(word);
+    
+    if (categoryId) {
+      const category = await Category.findOne({ uuid: categoryId });
+      if (!category) {
+        return sendError(res, 404, 'Category not found');
       }
-      keyword.category = category;
+      if (!category.isActive) {
+        return sendError(res, 400, 'Cannot assign keyword to inactive category');
+      }
+      keyword.category = category._id;
     }
 
     await keyword.save();
+    await keyword.populate('category');
+
+    const categoryData = keyword.category ? {
+      id: keyword.category.uuid,
+      name: keyword.category.name,
+      displayName: keyword.category.displayName,
+    } : null;
 
     sendSuccess(res, 200, 'Keyword updated successfully', {
       keyword: {
-        id: keyword._id,
+        id: keyword.uuid,
         word: keyword.word,
-        category: keyword.category,
+        category: categoryData,
         isEnabled: keyword.isEnabled,
       },
     });
@@ -118,14 +161,14 @@ const deleteKeyword = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const keyword = await Keyword.findByIdAndDelete(id);
+    const keyword = await Keyword.findOneAndDelete({ uuid: id });
     if (!keyword) {
       return sendError(res, 404, 'Keyword not found');
     }
 
     sendSuccess(res, 200, 'Keyword deleted successfully', {
       deletedKeyword: {
-        id: keyword._id,
+        id: keyword.uuid,
         word: keyword.word,
       },
     });
@@ -142,19 +185,26 @@ const toggleKeyword = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const keyword = await Keyword.findById(id);
+    const keyword = await Keyword.findOne({ uuid: id });
     if (!keyword) {
       return sendError(res, 404, 'Keyword not found');
     }
 
     keyword.isEnabled = !keyword.isEnabled;
     await keyword.save();
+    await keyword.populate('category');
+
+    const categoryData = keyword.category ? {
+      id: keyword.category.uuid,
+      name: keyword.category.name,
+      displayName: keyword.category.displayName,
+    } : null;
 
     sendSuccess(res, 200, 'Keyword toggled successfully', {
       keyword: {
-        id: keyword._id,
+        id: keyword.uuid,
         word: keyword.word,
-        category: keyword.category,
+        category: categoryData,
         isEnabled: keyword.isEnabled,
       },
     });

@@ -1,6 +1,13 @@
 const UninstallRequest = require('../models/UninstallRequest');
 const Device = require('../models/Device');
 const { sendSuccess, sendError } = require('../utils/response');
+const { executePaginatedQuery } = require('../utils/pagination');
+const { 
+  isValidReviewStatus, 
+  canBeReviewed,
+  validateRequiredFields 
+} = require('../utils/validation');
+const { REVIEW_STATUSES } = require('../config/constant');
 const { uploadFile, deleteMultipleFiles } = require('../utils/r2Helper');
 const crypto = require('crypto');
 
@@ -13,8 +20,9 @@ const submitUninstallRequest = async (req, res, next) => {
     const { deviceId, reason } = req.body;
     const files = req.files;
 
-    if (!deviceId || !reason) {
-      return sendError(res, 400, 'Device ID and reason are required');
+    const validation = validateRequiredFields(req.body, ['deviceId', 'reason']);
+    if (!validation.valid) {
+      return sendError(res, 400, `Missing required fields: ${validation.missing.join(', ')}`);
     }
 
     if (!files || files.length === 0) {
@@ -52,7 +60,7 @@ const submitUninstallRequest = async (req, res, next) => {
     });
 
     sendSuccess(res, 201, 'Uninstall request submitted successfully', {
-      requestId: uninstallRequest._id,
+      requestId: uninstallRequest.uuid,
       status: uninstallRequest.status,
     });
   } catch (error) {
@@ -90,7 +98,7 @@ const checkUninstallStatus = async (req, res, next) => {
     }
 
     const responseData = {
-      requestId: request._id,
+      requestId: request.uuid,
       status: request.status,
       reason: request.reason,
       createdAt: request.createdAt,
@@ -115,29 +123,21 @@ const checkUninstallStatus = async (req, res, next) => {
  */
 const getAllUninstallRequests = async (req, res, next) => {
   try {
-    const { status, page = 1, limit = 20 } = req.query;
+    const { status } = req.query;
 
     const filter = {};
-    if (status) {
-      filter.status = status;
-    }
+    if (status) filter.status = status;
 
-    const requests = await UninstallRequest.find(filter)
-      .populate('deviceId', 'deviceId metadata')
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
-
-    const total = await UninstallRequest.countDocuments(filter);
+    const { items: requests, pagination } = await executePaginatedQuery({
+      model: UninstallRequest,
+      filter,
+      query: req.query,
+      populate: { path: 'deviceId', select: 'deviceId metadata' },
+    });
 
     sendSuccess(res, 200, 'Uninstall requests retrieved', {
       requests,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
+      pagination,
     });
   } catch (error) {
     next(error);
@@ -153,16 +153,16 @@ const reviewUninstallRequest = async (req, res, next) => {
     const { id } = req.params;
     const { status, adminNote } = req.body;
 
-    if (!status || !['APPROVED', 'REJECTED'].includes(status)) {
-      return sendError(res, 400, 'Valid status (APPROVED or REJECTED) is required');
+    if (!status || !isValidReviewStatus(status)) {
+      return sendError(res, 400, `Valid status required. Allowed: ${REVIEW_STATUSES.join(', ')}`);
     }
 
-    const request = await UninstallRequest.findById(id);
+    const request = await UninstallRequest.findOne({ uuid: id });
     if (!request) {
       return sendError(res, 404, 'Uninstall request not found');
     }
 
-    if (request.status !== 'PENDING') {
+    if (!canBeReviewed(request)) {
       return sendError(res, 400, 'This request has already been reviewed');
     }
 
@@ -186,7 +186,7 @@ const reviewUninstallRequest = async (req, res, next) => {
     }
 
     sendSuccess(res, 200, 'Uninstall request reviewed successfully', {
-      requestId: request._id,
+      requestId: request.uuid,
       status: request.status,
       unlockCode: request.unlockCode,
       adminNote: request.adminNote,

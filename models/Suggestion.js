@@ -1,9 +1,16 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const suggestionSchema = new mongoose.Schema(
   {
+    uuid: {
+      type: String,
+      default: () => crypto.randomUUID(),
+      unique: true,
+      index: true,
+    },
     deviceId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: String,
       ref: 'Device',
       required: false,
     },
@@ -29,6 +36,15 @@ const suggestionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: {
+      transform: (doc, ret) => {
+        ret.id = ret.uuid;
+        delete ret._id;
+        delete ret.uuid;
+        delete ret.__v;
+        return ret;
+      },
+    },
   }
 );
 

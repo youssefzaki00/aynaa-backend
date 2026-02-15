@@ -1,5 +1,7 @@
 const GlobalWhitelist = require('../models/GlobalWhitelist');
 const { sendSuccess, sendError } = require('../utils/response');
+const { executePaginatedQuery } = require('../utils/pagination');
+const { validateRequiredFields } = require('../utils/validation');
 
 /**
  * Add an app to the global whitelist
@@ -9,8 +11,9 @@ const addToWhitelist = async (req, res, next) => {
   try {
     const { packageName, appName } = req.body;
 
-    if (!packageName || !appName) {
-      return sendError(res, 400, 'Package name and App name are required');
+    const validation = validateRequiredFields(req.body, ['packageName', 'appName']);
+    if (!validation.valid) {
+      return sendError(res, 400, `Missing required fields: ${validation.missing.join(', ')}`);
     }
 
     const whitelistApp = await GlobalWhitelist.create({
@@ -20,7 +23,7 @@ const addToWhitelist = async (req, res, next) => {
 
     sendSuccess(res, 201, 'App added to whitelist successfully', {
       app: {
-        id: whitelistApp._id,
+        id: whitelistApp.uuid,
         packageName: whitelistApp.packageName,
         appName: whitelistApp.appName,
       },
@@ -36,24 +39,14 @@ const addToWhitelist = async (req, res, next) => {
  */
 const getWhitelist = async (req, res, next) => {
   try {
-    const { page = 1, limit = 50 } = req.query;
-
-    const whitelist = await GlobalWhitelist.find()
-      .select('-__v')
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
-
-    const total = await GlobalWhitelist.countDocuments();
+    const { items: whitelist, pagination } = await executePaginatedQuery({
+      model: GlobalWhitelist,
+      query: req.query,
+    });
 
     sendSuccess(res, 200, 'Whitelist retrieved successfully', {
       whitelist,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
+      pagination,
     });
   } catch (error) {
     next(error);
@@ -69,7 +62,7 @@ const updateWhitelistApp = async (req, res, next) => {
     const { id } = req.params;
     const { packageName, appName } = req.body;
 
-    const app = await GlobalWhitelist.findById(id);
+    const app = await GlobalWhitelist.findOne({ uuid: id });
     if (!app) {
       return sendError(res, 404, 'App not found in whitelist');
     }
@@ -81,7 +74,7 @@ const updateWhitelistApp = async (req, res, next) => {
 
     sendSuccess(res, 200, 'Whitelist app updated successfully', {
       app: {
-        id: app._id,
+        id: app.uuid,
         packageName: app.packageName,
         appName: app.appName,
       },
@@ -99,14 +92,14 @@ const removeFromWhitelist = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const app = await GlobalWhitelist.findByIdAndDelete(id);
+    const app = await GlobalWhitelist.findOneAndDelete({ uuid: id });
     if (!app) {
       return sendError(res, 404, 'App not found in whitelist');
     }
 
     sendSuccess(res, 200, 'App removed from whitelist successfully', {
       deletedApp: {
-        id: app._id,
+        id: app.uuid,
         packageName: app.packageName,
         appName: app.appName,
       },

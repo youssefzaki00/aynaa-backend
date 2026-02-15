@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const deviceSchema = new mongoose.Schema(
   {
@@ -25,9 +26,42 @@ const deviceSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    customBlockedKeywords: [
+      {
+        type: String,
+        trim: true,
+        lowercase: true,
+      },
+    ],
+    customAllowedKeywords: [
+      {
+        type: String,
+        trim: true,
+        lowercase: true,
+      },
+    ],
+    customWhitelistedApps: [
+      {
+        type: String, // package name
+        trim: true,
+      },
+    ],
+    customBlacklistedApps: [
+      {
+        type: String, // package name
+        trim: true,
+      },
+    ],
   },
   {
     timestamps: true,
+    toJSON: {
+      transform: (doc, ret) => {
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
   }
 );
 

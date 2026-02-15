@@ -1,6 +1,14 @@
 const Suggestion = require('../models/Suggestion');
 const Device = require('../models/Device');
 const { sendSuccess, sendError } = require('../utils/response');
+const { executePaginatedQuery } = require('../utils/pagination');
+const { 
+  isValidSuggestionType, 
+  isValidReviewStatus, 
+  canBeReviewed,
+  validateRequiredFields 
+} = require('../utils/validation');
+const { SUGGESTION_TYPES, REVIEW_STATUSES } = require('../config/constant');
 
 /**
  * Submit a suggestion
@@ -10,12 +18,13 @@ const submitSuggestion = async (req, res, next) => {
   try {
     const { deviceId, type, content, note } = req.body;
 
-    if (!type || !content) {
-      return sendError(res, 400, 'Type and content are required');
+    const validation = validateRequiredFields(req.body, ['type', 'content']);
+    if (!validation.valid) {
+      return sendError(res, 400, `Missing required fields: ${validation.missing.join(', ')}`);
     }
 
-    if (!['BLOCK_WORD', 'UNBLOCK_WORD', 'WHITELIST_APP'].includes(type)) {
-      return sendError(res, 400, 'Invalid suggestion type');
+    if (!isValidSuggestionType(type)) {
+      return sendError(res, 400, `Invalid suggestion type. Allowed: ${SUGGESTION_TYPES.join(', ')}`);
     }
 
     let deviceObjectId = null;
@@ -38,7 +47,7 @@ const submitSuggestion = async (req, res, next) => {
     });
 
     sendSuccess(res, 201, 'Suggestion submitted successfully', {
-      suggestionId: suggestion._id,
+      suggestionId: suggestion.uuid,
       status: suggestion.status,
     });
   } catch (error) {
@@ -52,28 +61,22 @@ const submitSuggestion = async (req, res, next) => {
  */
 const getAllSuggestions = async (req, res, next) => {
   try {
-    const { status, type, page = 1, limit = 20 } = req.query;
+    const { status, type } = req.query;
 
     const filter = {};
     if (status) filter.status = status;
     if (type) filter.type = type;
 
-    const suggestions = await Suggestion.find(filter)
-      .populate('deviceId', 'deviceId')
-      .sort({ createdAt: -1 })
-      .limit(parseInt(limit))
-      .skip((parseInt(page) - 1) * parseInt(limit));
-
-    const total = await Suggestion.countDocuments(filter);
+    const { items: suggestions, pagination } = await executePaginatedQuery({
+      model: Suggestion,
+      filter,
+      query: req.query,
+      populate: { path: 'deviceId', select: 'deviceId' },
+    });
 
     sendSuccess(res, 200, 'Suggestions retrieved', {
       suggestions,
-      pagination: {
-        total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(total / parseInt(limit)),
-      },
+      pagination,
     });
   } catch (error) {
     next(error);
@@ -89,16 +92,16 @@ const reviewSuggestion = async (req, res, next) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!status || !['APPROVED', 'REJECTED'].includes(status)) {
-      return sendError(res, 400, 'Valid status (APPROVED or REJECTED) is required');
+    if (!status || !isValidReviewStatus(status)) {
+      return sendError(res, 400, `Valid status required. Allowed: ${REVIEW_STATUSES.join(', ')}`);
     }
 
-    const suggestion = await Suggestion.findById(id);
+    const suggestion = await Suggestion.findOne({ uuid: id });
     if (!suggestion) {
       return sendError(res, 404, 'Suggestion not found');
     }
 
-    if (suggestion.status !== 'PENDING') {
+    if (!canBeReviewed(suggestion)) {
       return sendError(res, 400, 'This suggestion has already been reviewed');
     }
 
@@ -106,7 +109,7 @@ const reviewSuggestion = async (req, res, next) => {
     await suggestion.save();
 
     sendSuccess(res, 200, 'Suggestion reviewed successfully', {
-      suggestionId: suggestion._id,
+      suggestionId: suggestion.uuid,
       status: suggestion.status,
     });
   } catch (error) {

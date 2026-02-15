@@ -7,11 +7,15 @@ const uninstallRoutes = require('./uninstall.routes');
 const suggestionRoutes = require('./suggestion.routes');
 const keywordRoutes = require('./keyword.routes');
 const whitelistRoutes = require('./whitelist.routes');
+const customizationRoutes = require('./customization.routes');
+const categoryRoutes = require('./category.routes');
 
 // Mount routes
 router.use('/', deviceRoutes);
 router.use('/uninstall', uninstallRoutes);
 router.use('/suggestions', suggestionRoutes);
+router.use('/customization', customizationRoutes);
+router.use('/admin/categories', categoryRoutes);
 router.use('/admin/keywords', keywordRoutes);
 router.use('/admin/whitelist', whitelistRoutes);
 

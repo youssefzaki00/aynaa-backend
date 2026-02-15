@@ -15,7 +15,7 @@ const globalLimiter = rateLimit({
 // Strict rate limiter: 3 requests per hour for sensitive operations
 const strictLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 3, // Limit each IP to 3 requests per hour
+  max: process.env.NODE_ENV === 'test' ? 100 : 3, // Increase limit for tests
   message: {
     success: false,
     message: 'Too many requests. Please wait before submitting again.',

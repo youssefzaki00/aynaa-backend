@@ -27,7 +27,7 @@
 					"response": []
 				},
 				{
-					"name": "Sync Device (Get Keywords & Whitelist)",
+					"name": "Get Device Config (Keywords & Whitelist)",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -35,15 +35,28 @@
 								"key": "x-api-key",
 								"value": "{{apiKey}}",
 								"type": "text"
+							},
+							{
+								"key": "deviceId",
+								"value": "{{deviceId}}",
+								"type": "text"
 							}
 						],
 						"url": {
-							"raw": "{{baseUrl}}/sync",
+							"raw": "{{baseUrl}}/config",
 							"host": [
 								"{{baseUrl}}"
 							],
 							"path": [
-								"sync"
+								"config"
+							],
+							"query": [
+								{
+									"key": "deviceId",
+									"value": "{{deviceId}}",
+									"disabled": true,
+									"description": "Optional: deviceId can be passed as query param instead of header"
+								}
 							]
 						}
 					},
@@ -160,6 +173,147 @@
 							],
 							"path": [
 								"suggestions"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Customization",
+			"item": [
+				{
+					"name": "Submit Customization Request",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{apiKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"deviceId\": \"{{deviceId}}\",\n    \"type\": \"CUSTOM_BLOCK_KEYWORD\",\n    \"content\": \"blockthis\",\n    \"reason\": \"Parental request\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/customization/request",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customization",
+								"request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Check Customization Status",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-api-key",
+								"value": "{{apiKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/customization/status?deviceId={{deviceId}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"customization",
+								"status"
+							],
+							"query": [
+								{
+									"key": "deviceId",
+									"value": "{{deviceId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin: List Customization Requests",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/admin/customization/requests?status=PENDING",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"customization",
+								"requests"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "PENDING"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Admin: Review Customization Request",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "x-admin-key",
+								"value": "{{adminKey}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"APPROVED\",\n    \"adminNote\": \"Approved request.\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/admin/customization/review/:id",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"admin",
+								"customization",
+								"review",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "",
+									"description": "Replace with Request ID"
+								}
 							]
 						}
 					},
@@ -658,11 +812,11 @@
 		},
 		{
 			"key": "apiKey",
-			"value": "wekayaa-api-secret-key-2024-change-me"
+			"value": "07f1c67ca9deba030e49309f9035dfd19a1cf0a200cc22cfded597f943f49773"
 		},
 		{
 			"key": "adminKey",
-			"value": "wekayaa-admin-secret-key-2024-change-me"
+			"value": "Wekayaa_Admin_@2025_Sup4rSeE$FH213cr3t#Key99"
 		},
 		{
 			"key": "deviceId",
