@@ -41,4 +41,6 @@ module.exports = {
   REQUEST_STATUSES,
   DEFAULT_PAGINATION,
   VALIDATION_LIMITS,
+  JWT_SECRET: process.env.JWT_SECRET || 'fallback_secret_should_change_in_prod',
+  JWT_EXPIRE: '30d',
 };

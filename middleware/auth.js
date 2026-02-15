@@ -19,7 +19,53 @@ const authenticateAPI = (req, res, next) => {
   next();
 };
 
-// Admin Authentication Middleware
+const jwt = require('jsonwebtoken');
+const Admin = require('../models/Admin');
+const { JWT_SECRET } = require('../config/constant');
+
+// Protect routes - JWT Verification
+const protect = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      // Get token from header
+      token = req.headers.authorization.split(' ')[1];
+
+      // Verify token
+      const decoded = jwt.verify(token, JWT_SECRET);
+
+      // Get admin from the token
+      req.user = await Admin.findById(decoded.id).select('-password');
+
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Access denied. User not found.',
+        });
+      }
+
+      next();
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        message: 'Access denied. Invalid token.',
+      });
+    }
+  }
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: 'Access denied. No token provided.',
+    });
+  }
+};
+
+// Deprecated: Legacy Admin Authentication Middleware (Will be removed)
 const authenticateAdmin = (req, res, next) => {
   const adminKey = req.header('x-admin-key');
 
@@ -40,4 +86,4 @@ const authenticateAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticateAPI, authenticateAdmin };
+module.exports = { authenticateAPI, authenticateAdmin, protect };

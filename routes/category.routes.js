@@ -8,14 +8,14 @@ const {
   deleteCategory,
   toggleCategory,
 } = require('../controllers/categoryController');
-const { authenticateAdmin } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 // All category routes require admin authentication
-router.post('/', authenticateAdmin, createCategory);
-router.get('/', authenticateAdmin, getCategories);
-router.get('/:id', authenticateAdmin, getCategoryById);
-router.patch('/:id', authenticateAdmin, updateCategory);
-router.delete('/:id', authenticateAdmin, deleteCategory);
-router.patch('/:id/toggle', authenticateAdmin, toggleCategory);
+router.post('/', protect, createCategory);
+router.get('/', protect, getCategories);
+router.get('/:id', protect, getCategoryById);
+router.patch('/:id', protect, updateCategory);
+router.delete('/:id', protect, deleteCategory);
+router.patch('/:id/toggle', protect, toggleCategory);
 
 module.exports = router;

@@ -6,12 +6,13 @@ http://localhost:5000/api/v1
 ```
 
 ## Authentication
-All admin endpoints require the `x-admin-key` header:
-```
-x-admin-key: your-admin-key-here
-```
 
----
+### Admin Access
+1. **Login** to get a JWT token: `POST /api/v1/auth/login`
+2. **Include Token** in the header for all admin requests:
+```http
+Authorization: Bearer <your-jwt-token>
+```
 
 ## 📊 Categories Management
 
@@ -798,57 +799,25 @@ ALLOWED_ORIGINS=http://localhost:3000,https://yourdomain.com
 ## 🚀 Quick Start Example
 
 ```javascript
-// Get all categories
-const getCategories = async () => {
-  try {
-    const response = await fetch('http://localhost:5000/api/v1/admin/categories', {
-      headers: {
-        'x-admin-key': 'your-admin-key'
-      }
-    });
-    const data = await response.json();
-    console.log(data.data.categories);
-  } catch (error) {
-    console.error('Error:', error);
-  }
+// 1. Login to get token
+const login = async (username, password) => {
+  const response = await fetch('http://localhost:5000/api/v1/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
+  });
+  const data = await response.json();
+  return data.data.token;
 };
 
-// Create a keyword
-const createKeyword = async (word, categoryId) => {
-  try {
-    const response = await fetch('http://localhost:5000/api/v1/admin/keywords', {
-      method: 'POST',
-      headers: {
-        'x-admin-key': 'your-admin-key',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ word, categoryId })
-    });
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error:', error);
-  }
-};
-
-// Review suggestion
-const reviewSuggestion = async (suggestionId, status) => {
-  try {
-    const response = await fetch(
-      `http://localhost:5000/api/v1/admin/suggestions/review/${suggestionId}`,
-      {
-        method: 'PATCH',
-        headers: {
-          'x-admin-key': 'your-admin-key',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status })
-      }
-    );
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error('Error:', error);
-  }
+// 2. Use token for requests
+const getCategories = async (token) => {
+  const response = await fetch('http://localhost:5000/api/v1/admin/categories', {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  const data = await response.json();
+  console.log(data);
 };
 ```

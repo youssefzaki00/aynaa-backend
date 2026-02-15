@@ -9,6 +9,7 @@ const keywordRoutes = require('./keyword.routes');
 const whitelistRoutes = require('./whitelist.routes');
 const customizationRoutes = require('./customization.routes');
 const categoryRoutes = require('./category.routes');
+const authRoutes = require('./auth.routes');
 
 // Mount routes
 router.use('/', deviceRoutes);
@@ -18,6 +19,7 @@ router.use('/customization', customizationRoutes);
 router.use('/admin/categories', categoryRoutes);
 router.use('/admin/keywords', keywordRoutes);
 router.use('/admin/whitelist', whitelistRoutes);
+router.use('/auth', authRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

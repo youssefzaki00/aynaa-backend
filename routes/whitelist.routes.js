@@ -6,12 +6,12 @@ const {
   updateWhitelistApp,
   removeFromWhitelist,
 } = require('../controllers/whitelistController');
-const { authenticateAdmin } = require('../middleware/auth');
+const { protect } = require('../middleware/auth');
 
 // All whitelist routes require admin authentication
-router.post('/', authenticateAdmin, addToWhitelist);
-router.get('/', authenticateAdmin, getWhitelist);
-router.patch('/:id', authenticateAdmin, updateWhitelistApp);
-router.delete('/:id', authenticateAdmin, removeFromWhitelist);
+router.post('/', protect, addToWhitelist);
+router.get('/', protect, getWhitelist);
+router.patch('/:id', protect, updateWhitelistApp);
+router.delete('/:id', protect, removeFromWhitelist);
 
 module.exports = router;

@@ -5,14 +5,14 @@ const {
   getAllSuggestions,
   reviewSuggestion,
 } = require('../controllers/suggestionController');
-const { authenticateAPI, authenticateAdmin } = require('../middleware/auth');
+const { authenticateAPI, protect } = require('../middleware/auth');
 const { strictLimiter } = require('../middleware/rateLimiter');
 
 // Client route
 router.post('/', authenticateAPI, strictLimiter, submitSuggestion);
 
 // Admin routes
-router.get('/admin', authenticateAdmin, getAllSuggestions);
-router.patch('/admin/review/:id', authenticateAdmin, reviewSuggestion);
+router.get('/admin', protect, getAllSuggestions);
+router.patch('/admin/review/:id', protect, reviewSuggestion);
 
 module.exports = router;

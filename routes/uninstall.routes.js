@@ -6,7 +6,7 @@ const {
   getAllUninstallRequests,
   reviewUninstallRequest,
 } = require('../controllers/uninstallController');
-const { authenticateAPI, authenticateAdmin } = require('../middleware/auth');
+const { authenticateAPI, protect } = require('../middleware/auth');
 const { strictLimiter } = require('../middleware/rateLimiter');
 const upload = require('../middleware/upload');
 
@@ -22,7 +22,7 @@ router.post(
 router.get('/status', authenticateAPI, checkUninstallStatus);
 
 // Admin routes
-router.get('/admin/requests', authenticateAdmin, getAllUninstallRequests);
-router.patch('/admin/review/:id', authenticateAdmin, reviewUninstallRequest);
+router.get('/admin/requests', protect, getAllUninstallRequests);
+router.patch('/admin/review/:id', protect, reviewUninstallRequest);
 
 module.exports = router;

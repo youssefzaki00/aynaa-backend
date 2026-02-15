@@ -6,7 +6,7 @@ const {
   getAllCustomizationRequests,
   reviewCustomizationRequest,
 } = require('../controllers/customizationController');
-const { authenticateAPI, authenticateAdmin } = require('../middleware/auth');
+const { authenticateAPI, protect } = require('../middleware/auth');
 const { strictLimiter } = require('../middleware/rateLimiter');
 
 // Client routes
@@ -14,7 +14,7 @@ router.post('/request', authenticateAPI, strictLimiter, submitCustomizationReque
 router.get('/status', authenticateAPI, getCustomizationStatus);
 
 // Admin routes
-router.get('/admin/requests', authenticateAdmin, getAllCustomizationRequests);
-router.patch('/admin/review/:id', authenticateAdmin, reviewCustomizationRequest);
+router.get('/admin/requests', protect, getAllCustomizationRequests);
+router.patch('/admin/review/:id', protect, reviewCustomizationRequest);
 
 module.exports = router;
