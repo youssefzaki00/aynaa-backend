@@ -19,23 +19,12 @@ app.use(helmet());
 
 // CORS Configuration
 const { ALLOWED_ORIGINS } = require('./config/constant');
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-console.log('🔔 Incoming Request Origin:', origin);      // Allow requests with no origin (mobile apps, Postman, etc.)
-      if (!origin) return callback(null, true);
-
-      if (ALLOWED_ORIGINS.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
-        callback(null, true);
-      } else {
-        console.error(`🚫 Blocked by CORS: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
-    credentials: false,
-  })
-);
+const corsOptions = {
+  origin: ALLOWED_ORIGINS,
+  credentials: false,
+  optionsSuccessStatus: 200,
+};
+app.use(cors(corsOptions));
 
 // Body Parser
 app.use(express.json({ limit: '10mb' }));
