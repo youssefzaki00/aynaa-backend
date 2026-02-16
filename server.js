@@ -17,10 +17,8 @@ const app = express();
 // Security Middleware
 app.use(helmet());
 
-// CORS Configuration
-const { ALLOWED_ORIGINS } = require('./config/constant');
 const corsOptions = {
-  origin: ALLOWED_ORIGINS,
+  origin: ['https://dashboard.wekayaa.com', 'http://localhost:3000'],
   credentials: false,
   optionsSuccessStatus: 200,
 };
@@ -72,17 +70,21 @@ if (require.main === module) {
   const PORT = process.env.PORT || 5000;
 
   // 1. استنى الداتا بيز تتصل الأول
-  connectDB().then(() => {
-    // 2. لما تنجح، شغل السيرفر
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+  connectDB()
+    .then(() => {
+      // 2. لما تنجح، شغل السيرفر
+      app.listen(PORT, () => {
+        console.log(
+          `🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`
+        );
+      });
+    })
+    .catch((err) => {
+      // 3. لو فشلت، متقومش السيرفر واطبع ايرور
+      console.error('❌ Failed to connect to Database. Server not started.');
+      console.error(err);
+      process.exit(1);
     });
-  }).catch((err) => {
-    // 3. لو فشلت، متقومش السيرفر واطبع ايرور
-    console.error('❌ Failed to connect to Database. Server not started.');
-    console.error(err);
-    process.exit(1);
-  });
 }
 
 // Export App for Vercel or Testing
