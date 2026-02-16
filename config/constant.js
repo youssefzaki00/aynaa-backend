@@ -39,9 +39,10 @@ const envOrigins = process.env.ALLOWED_ORIGINS
 
 // 2. دي القيم الثابتة اللي عايزها دايماً موجودة
 const defaultOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://dashboard.wekayaa.com'
+  'http://localhost:3000/',
+  'http://localhost:5173/',
+  'https://dashboard.wekayaa.com/',
+  'https://wekayaa.com/'
 ];
 
 // 3. ادمج الاثنين مع بعض (عشان تضمن إن كله شغال)
