@@ -12,17 +12,17 @@ const sanitizeRequest = require('./middleware/sanitization'); // نقلت الا
 // Initialize Express app
 const app = express();
 
-// --- ⚠️ تم حذف connectDB() من هنا عشان ميتصلش مرتين ---
-
-// Security Middleware
-app.use(helmet());
-
 const corsOptions = {
-  origin: ['https://dashboard.wekayaa.com', 'http://localhost:3000'],
-  credentials: false,
+  origin: [
+    'https://dashboard.wekayaa.com',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ],
+  credentials: true,
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
+app.use(helmet());
 
 // Body Parser
 app.use(express.json({ limit: '10mb' }));
