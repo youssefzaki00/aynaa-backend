@@ -56,11 +56,11 @@ const createKeyword = async (req, res, next) => {
 
 /**
  * Get all keywords with optional filters
- * GET /api/v1/admin/keywords?categoryId=xxx&isEnabled=true&page=1&limit=50
+ * GET /api/v1/keywords?categoryId=xxx&isEnabled=true&page=1&limit=50&lastSync=<Date>
  */
 const getKeywords = async (req, res, next) => {
   try {
-    const { categoryId, isEnabled } = req.query;
+    const { categoryId, isEnabled, lastSync } = req.query;
 
     const filter = {};
     
@@ -74,6 +74,12 @@ const getKeywords = async (req, res, next) => {
     }
     
     if (isEnabled !== undefined) filter.isEnabled = isEnabled === 'true';
+
+    // Bind lastSync query to filter object
+    if(lastSync){
+      filter.createdAt = {$gt : new Date(lastSync)}
+      filter.updatedAt = {$gt : new Date(lastSync)}
+    }
 
     const { items: keywords, pagination } = await executePaginatedQuery({
       model: Keyword,
