@@ -17,7 +17,7 @@ router.use('/uninstall', uninstallRoutes);
 router.use('/suggestions', suggestionRoutes);
 router.use('/customization', customizationRoutes);
 router.use('/admin/categories', categoryRoutes);
-router.use('/admin/keywords', keywordRoutes);
+router.use('/keywords', keywordRoutes);
 router.use('/admin/whitelist', whitelistRoutes);
 router.use('/auth', authRoutes);
 
