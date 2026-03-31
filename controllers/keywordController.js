@@ -167,11 +167,10 @@ const deleteKeyword = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const keyword = await Keyword.findOneAndDelete({ uuid: id });
-    if (!keyword) {
-      return sendError(res, 404, 'Keyword not found');
-    }
+    const keyword = await Keyword.findOneAndDelete({ _id: id });
 
+    // if keyword is null (mean that it is deleted before) the endpoint stills return 200 because
+    // delete method is idempotent
     sendSuccess(res, 200, 'Keyword deleted successfully', {
       deletedKeyword: {
         id: keyword._id,
