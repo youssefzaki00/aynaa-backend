@@ -10,17 +10,17 @@ const createAdminToken = async () => {
     db = await connectDB();
 
     // Check if admin exists
-    const admin = await Admin.findOne({ role: "superadmin" });
+    let admin = await Admin.findOne({ role: "superadmin" }).lean();
 
     // If not admin create admin
     if (!admin) {
-      const admin = await Admin.create({
+      admin = await Admin.create({
         username: "anyusername",
         password: "anypassword",
         role: "superadmin",
       });
     }
-    const token = jwt.sign({id: admin.id, role: 'superadmin'}, process.env.JWT_SECRET)
+    const token = jwt.sign({id: admin._id.toString(), role: 'superadmin'}, process.env.JWT_SECRET)
     return token
   } catch (error) {
     console.error("Error creating token:", error.message);
