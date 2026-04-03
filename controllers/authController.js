@@ -1,7 +1,8 @@
-const Admin = require('../models/Admin');
-const jwt = require('jsonwebtoken');
-const { sendSuccess, sendError } = require('../utils/response');
-const { JWT_SECRET, JWT_EXPIRE } = require('../config/constant');
+const Admin = require("../models/Admin");
+const User = require("../models/User");
+const jwt = require("jsonwebtoken");
+const { sendSuccess, sendError } = require("../utils/response");
+const { JWT_SECRET, JWT_EXPIRE, UserRoles } = require("../config/constant");
 
 /**
  * Generate JWT Token
@@ -13,54 +14,112 @@ const generateToken = (id) => {
 };
 
 /**
- * Admin Login
- * POST /api/v1/auth/login
+ * User signup
+ * POST /api/v1/auth/signup
  */
-const login = async (req, res, next) => {
+const signUpAsUser = async (req, res, next) => {
   try {
-    const { username, password } = req.body;
+    const { deviceId } = req.body;
 
+    if (!deviceId || !deviceId.trim()) {
+      return sendError(res, 400, "Please provide deviceId");
+    }
+
+    const normalizedDeviceId = deviceId.trim();
+
+    let user = await User.findOne({ deviceId: normalizedDeviceId });
+    if (user) {
+      return sendError(res, 409, "User already exists");
+    }
+
+    user = await User.create({
+      deviceId: normalizedDeviceId,
+      role: UserRoles.USER,
+    });
+
+    const token = generateToken(user._id);
+
+    sendSuccess(res, 201, "User signed up successfully", {
+      token,
+      user: {
+        id: user._id,
+        deviceId: user.deviceId,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const loginAsAdmin = async (username, password) => {
+  try {
     if (!username || !password) {
-      return sendError(res, 400, 'Please provide username and password');
+      return sendError(res, 400, "Please provide username and password");
     }
 
-    // Lowercase username to match schema (which has lowercase: true)
     const normalizedUsername = username.toLowerCase().trim();
+    const admin = await User.findOne({ username: normalizedUsername }).select(
+      "+password",
+    );
 
-    // Check for admin
-    console.log(`Attempting login for username: '${normalizedUsername}'`);
-    const admin = await Admin.findOne({ username: normalizedUsername }).select('+password');
-    
-    if (!admin) {
-      console.log('User not found in database.');
-      return sendError(res, 401, 'Invalid credentials');
+    if (!admin || !(await admin.matchPassword(password))) {
+      return sendError(res, 401, "Invalid credentials");
     }
 
-    console.log('User found in database:', admin.username);
-    console.log('Stored hashed password:', admin.password);
-
-    // Check password
-    const isMatch = await admin.matchPassword(password);
-    console.log('Password match result:', isMatch);
-
-    if (!isMatch) {
-      console.log('Password mismatch!');
-      return sendError(res, 401, 'Invalid credentials');
-    }
-
-    // Update last login
-    admin.lastLogin = Date.now();
-    await admin.save();
-
-    // Create token
     const token = generateToken(admin._id);
-
-    sendSuccess(res, 200, 'Login successful', {
+    return {
       token,
       admin: {
         id: admin._id,
         username: admin.username,
         role: admin.role,
+      },
+    }
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+/**
+ * Login (user or admin)
+ * POST /api/v1/auth/login?role=user|admin
+ */
+const login = async (req, res, next) => {
+  try {
+    const role = (req.query.role || "").toLowerCase();
+
+    if (!role || !["user", "admin"].includes(role)) {
+      return sendError(res, 400, 'Invalid role. Use "user" or "admin"');
+    }
+
+    if (role === "admin") {
+      const { username, password } = req.body;
+      const data = await loginAsAdmin(username, password);
+      return sendSuccess(res, 200, "Login successful", data)
+    }
+
+    // User login
+    const { deviceId } = req.body;
+    if (!deviceId || !deviceId.trim()) {
+      return sendError(res, 400, "Please provide deviceId");
+    }
+
+    const normalizedDeviceId = deviceId.trim();
+
+    const user = await User.findOne({ deviceId: normalizedDeviceId });
+    if (!user) {
+      return sendError(res, 401, "Invalid credentials");
+    }
+
+    const token = generateToken(user._id);
+
+    return sendSuccess(res, 200, "Login successful", {
+      token,
+      user: {
+        id: user._id,
+        deviceId: user.deviceId,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -69,19 +128,23 @@ const login = async (req, res, next) => {
 };
 
 /**
- * Get Current Admin
+ * Get Current Authenticated User
  * GET /api/v1/auth/me
  */
 const getMe = async (req, res, next) => {
   try {
-    const admin = await Admin.findById(req.user.id);
+    if (!req.user) {
+      return sendError(res, 401, "No authenticated user");
+    }
 
-    sendSuccess(res, 200, 'Admin profile retrieved', {
-      admin: {
-        id: admin._id,
-        username: admin.username,
-        role: admin.role,
-        lastLogin: admin.lastLogin,
+    const me = await User.findById(req.user.id).select("-password").lean();
+
+    sendSuccess(res, 200, "User profile retrieved", {
+      user: {
+        id: me._id,
+        role: me.role,
+        username: me.username || null,
+        deviceId: me.deviceId || null,
       },
     });
   } catch (error) {
@@ -92,4 +155,5 @@ const getMe = async (req, res, next) => {
 module.exports = {
   login,
   getMe,
+  signUpAsUser,
 };

@@ -1,3 +1,4 @@
+const { UserRoles } = require("../config/constant");
 const ForbiddedException = require("../exceptions/ForbiddenException");
 
 /**
@@ -8,7 +9,7 @@ const ForbiddedException = require("../exceptions/ForbiddenException");
  */
 const adminOnly = (req, res, next) => {
   const user = req.user;
-  if (user.role != "superadmin") {
+  if (user.role != UserRoles.ADMIN) {
     next(new ForbiddedException());
   }
   next();
