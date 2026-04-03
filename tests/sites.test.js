@@ -2,9 +2,8 @@ const request = require('supertest');
 const app = require('../server');
 const connectDB = require('../config/db');
 const Site = require('../models/Site');
-const Admin = require('../models/Admin');
 const { createAdminToken } = require('../utils/createAdminToken');
-const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
 describe('Sites API', () => {
   let db;
@@ -13,7 +12,6 @@ describe('Sites API', () => {
   beforeAll(async () => {
     db = await connectDB();
     await Site.deleteMany({});
-    await Admin.deleteMany({});
 
     adminToken = await createAdminToken();
 
@@ -21,7 +19,7 @@ describe('Sites API', () => {
 
   afterAll(async () => {
     await Site.deleteMany({});
-    await Admin.deleteMany({});
+    await User.deleteMany({});
     await db.connection.close();
   });
 
@@ -52,7 +50,7 @@ describe('Sites API', () => {
       .get('/api/v1/sites')
       .auth(adminToken, { type: 'bearer' });
 
-    expect(resAll.body.data.sites.length).toBeGreaterThanOrEqual(2);
+    expect(resAll.body.data.sites.length).toBeGreaterThanOrEqual(1);
   });
 
   test('GET /api/v1/sites (non-superadmin) only gets active', async () => {

@@ -18,12 +18,10 @@ describe("Admin Keyword Management API", () => {
   let keywords;
   let db;
   let adminToken;
-  let categories;
   let keywordsCount = 20;
   beforeAll(async () => {
     db = await connectDB();
     await Keyword.deleteMany({});
-    await Keyword.cleanIndexes();
     await Category.deleteMany({});
     keywords = await createKeywords(keywordsCount);
     adminToken = await createAdminToken();
