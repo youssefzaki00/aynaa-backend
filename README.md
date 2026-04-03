@@ -21,6 +21,7 @@ Production-ready REST API for **wekayaa** - Parental Control & Content Filtering
 - **Storage:** Cloudflare R2 (@aws-sdk/client-s3)
 - **Security:** Helmet, CORS, express-rate-limit
 - **File Upload:** Multer (memory storage)
+- **Documentation:** Swagger/OpenAPI 3.0 (swagger-ui-express, swagger-jsdoc)
 
 ## 📁 Project Structure
 
@@ -103,7 +104,30 @@ npm run dev
 npm start
 ```
 
-## 📡 API Endpoints
+## � API Documentation
+
+The API is fully documented using Swagger/OpenAPI 3.0 specification.
+
+### Access API Documentation
+
+Once the server is running, visit:
+- **Development:** `http://localhost:5000/api-docs`
+- **Production:** `https://your-domain.com/api-docs`
+
+The interactive Swagger UI allows you to:
+- View all available endpoints
+- Test API calls directly from the browser
+- See request/response schemas
+- Authenticate with API keys and JWT tokens
+
+### Documented Modules
+
+The following route modules are fully documented:
+- **Authentication** (`/auth/*`) - User registration, login, and profile
+- **Keywords** (`/keywords/*`) - Keyword management (Admin only)
+- **Sites** (`/sites/*`) - Site blocking management
+
+## �📡 API Endpoints
 
 ### 🔓 Public Routes
 
