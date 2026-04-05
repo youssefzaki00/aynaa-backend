@@ -27,7 +27,7 @@ router.use('/auth', authRoutes);
 router.get('/health', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'wekayaa API is running',
+    message: 'aynaa API is running',
     timestamp: new Date().toISOString(),
   });
 });

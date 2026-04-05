@@ -4,21 +4,21 @@
  */
 
 // Suggestion Types
-const SUGGESTION_TYPES = ["BLOCK_WORD", "UNBLOCK_WORD", "WHITELIST_APP"];
+const SUGGESTION_TYPES = ['BLOCK_WORD', 'UNBLOCK_WORD', 'WHITELIST_APP'];
 
 // Customization Request Types
 const CUSTOMIZATION_TYPES = [
-  "CUSTOM_BLOCK_KEYWORD",
-  "CUSTOM_ALLOW_KEYWORD",
-  "CUSTOM_WHITELIST_APP",
-  "CUSTOM_BLACKLIST_APP",
+  'CUSTOM_BLOCK_KEYWORD',
+  'CUSTOM_ALLOW_KEYWORD',
+  'CUSTOM_WHITELIST_APP',
+  'CUSTOM_BLACKLIST_APP',
 ];
 
 // Review Statuses
-const REVIEW_STATUSES = ["APPROVED", "REJECTED"];
+const REVIEW_STATUSES = ['APPROVED', 'REJECTED'];
 
 // Request Statuses
-const REQUEST_STATUSES = ["PENDING", "APPROVED", "REJECTED"];
+const REQUEST_STATUSES = ['PENDING', 'APPROVED', 'REJECTED'];
 
 // Pagination Defaults
 const DEFAULT_PAGINATION = {
@@ -34,15 +34,15 @@ const VALIDATION_LIMITS = {
   MAX_PACKAGE_NAME_LENGTH: 200,
 };
 const ALLOWED_ORIGINS = [
-  "http://localhost:3000/",
-  "http://localhost:5173/",
-  "https://dashboard.wekayaa.com/",
-  "https://wekayaa.com/",
+  'http://localhost:3000/',
+  'http://localhost:5173/',
+  'https://dashboard.aynaa.org/',
+  'https://aynaa.org/',
 ];
 
 const UserRoles = {
-  ADMIN: "admin",
-  USER: "user",
+  ADMIN: 'admin',
+  USER: 'user',
 };
 
 module.exports = {
@@ -52,8 +52,8 @@ module.exports = {
   REQUEST_STATUSES,
   DEFAULT_PAGINATION,
   VALIDATION_LIMITS,
-  JWT_SECRET: process.env.JWT_SECRET || "fallback_secret_should_change_in_prod",
-  JWT_EXPIRE: "30d",
+  JWT_SECRET: process.env.JWT_SECRET || 'fallback_secret_should_change_in_prod',
+  JWT_EXPIRE: '30d',
   ALLOWED_ORIGINS: ALLOWED_ORIGINS,
   UserRoles,
 };

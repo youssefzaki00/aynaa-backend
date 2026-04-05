@@ -1,6 +1,6 @@
-# Wekayaa Backend API
+# aynaa Backend API
 
-Production-ready REST API for **wekayaa** - Parental Control & Content Filtering Android App.
+Production-ready REST API for **aynaa** - Parental Control & Content Filtering Android App.
 
 ## 🚀 Features
 
@@ -26,7 +26,7 @@ Production-ready REST API for **wekayaa** - Parental Control & Content Filtering
 ## 📁 Project Structure
 
 ```
-wekayaa-backend/
+aynaa-backend/
 ├── config/              # Database and R2 configuration
 ├── middleware/          # Auth, upload, rate limiting, error handling
 ├── models/              # Mongoose schemas
@@ -44,7 +44,7 @@ wekayaa-backend/
 
 ```bash
 git clone <repository-url>
-cd wekayaa-backend
+cd aynaa-backend
 ```
 
 ### 2. Install dependencies
@@ -79,7 +79,7 @@ ADMIN_API_KEY=your-admin-api-key
 R2_ACCOUNT_ID=your-account-id
 R2_ACCESS_KEY_ID=your-access-key
 R2_SECRET_ACCESS_KEY=your-secret-key
-R2_BUCKET_NAME=wekayaa-uploads
+R2_BUCKET_NAME=aynaa-uploads
 R2_PUBLIC_URL=https://your-r2-public-url.com
 ```
 
@@ -348,7 +348,7 @@ Content-Type: application/json
 2. Use a process manager like **PM2**:
    ```bash
    npm install -g pm2
-   pm2 start server.js --name wekayaa-api
+   pm2 start server.js --name aynaa-api
    pm2 save
    ```
 3. Set up a reverse proxy (Nginx/Apache)
@@ -360,7 +360,7 @@ ISC
 
 ## 👨‍💻 Author
 
-Built for wekayaa - Parental Control & Content Filtering App
+Built for aynaa - Parental Control & Content Filtering App
 
 ---
 

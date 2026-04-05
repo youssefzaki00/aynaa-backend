@@ -19,9 +19,10 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Wekayaa Backend API',
+      title: 'aynaa Backend API',
       version: '1.0.0',
-      description: 'Production-ready REST API for Wekayaa - Parental Control & Content Filtering Android App',
+      description:
+        'Production-ready REST API for aynaa - Parental Control & Content Filtering Android App',
     },
     servers: [
       {
@@ -29,7 +30,7 @@ const swaggerOptions = {
         description: 'Development server',
       },
       {
-        url: 'https://api.wekayaa.com/api/v1',
+        url: 'https://api.aynaa.org/api/v1',
         description: 'Production server',
       },
     ],
@@ -202,7 +203,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const corsOptions = {
   origin: [
-    'https://dashboard.wekayaa.com',
+    'https://dashboard.aynaa.org',
     'http://localhost:3000',
     'http://127.0.0.1:3000',
   ],
@@ -236,7 +237,7 @@ app.use('/api/v1', routes);
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Welcome to wekayaa API',
+    message: 'Welcome to aynaa API',
     version: '1.0.0',
     documentation: '/api/v1/health',
   });
