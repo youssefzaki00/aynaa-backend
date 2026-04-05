@@ -19,7 +19,7 @@ const createKeyword = async (req, res, next) => {
     }
 
     // Verify category exists
-    const category = await Category.findOne({ uuid: categoryId });
+    const category = await Category.findOne({ _id: categoryId });
     if (!category) {
       return sendError(res, 404, 'Category not found');
     }
@@ -39,10 +39,10 @@ const createKeyword = async (req, res, next) => {
 
     sendSuccess(res, 201, 'Keyword created successfully', {
       keyword: {
-        id: keyword.uuid,
+        id: keyword._id,
         word: keyword.word,
         category: {
-          id: category.uuid,
+          id: category._id,
           name: category.name,
           displayName: category.displayName,
         },
@@ -56,17 +56,17 @@ const createKeyword = async (req, res, next) => {
 
 /**
  * Get all keywords with optional filters
- * GET /api/v1/admin/keywords?categoryId=xxx&isEnabled=true&page=1&limit=50
+ * GET /api/v1/keywords?categoryId=xxx&isEnabled=true&page=1&limit=50&lastSync=<Date>
  */
 const getKeywords = async (req, res, next) => {
   try {
-    const { categoryId, isEnabled } = req.query;
+    const { categoryId, isEnabled, lastSync } = req.query;
 
     const filter = {};
     
     // Filter by category if provided
     if (categoryId) {
-      const category = await Category.findOne({ uuid: categoryId });
+      const category = await Category.findOne({ _id: categoryId });
       if (!category) {
         return sendError(res, 404, 'Category not found');
       }
@@ -75,28 +75,34 @@ const getKeywords = async (req, res, next) => {
     
     if (isEnabled !== undefined) filter.isEnabled = isEnabled === 'true';
 
+    // Bind lastSync query to filter object
+    if(lastSync){
+      filter.createdAt = {$gt : new Date(lastSync)}
+      filter.updatedAt = {$gt : new Date(lastSync)}
+    }
+
     const { items: keywords, pagination } = await executePaginatedQuery({
       model: Keyword,
       filter,
       query: req.query,
       populate: {
         path: 'category',
-        select: 'uuid name displayName -_id',
+        select: '_id name displayName',
       },
     });
 
-    // Transform keywords to use category.id instead of category.uuid
+    // Transform keywords to use category.id instead of category._id
     const transformedKeywords = keywords.map(keyword => {
       const keywordObj = keyword.toJSON();
       if (keywordObj.category) {
-        keywordObj.category.id = keywordObj.category.uuid;
-        delete keywordObj.category.uuid;
+        keywordObj.category.id = keywordObj.category._id;
+        delete keywordObj.category._id;
       }
       return keywordObj;
     });
 
     sendSuccess(res, 200, 'Keywords retrieved successfully', {
-      keywords: transformedKeywords,
+      keywords: keywords,
       pagination,
     });
   } catch (error) {
@@ -113,7 +119,7 @@ const updateKeyword = async (req, res, next) => {
     const { id } = req.params;
     const { word, categoryId } = req.body;
 
-    const keyword = await Keyword.findOne({ uuid: id });
+    const keyword = await Keyword.findOne({ _id: id });
     if (!keyword) {
       return sendError(res, 404, 'Keyword not found');
     }
@@ -121,7 +127,7 @@ const updateKeyword = async (req, res, next) => {
     if (word) keyword.word = normalizeWord(word);
     
     if (categoryId) {
-      const category = await Category.findOne({ uuid: categoryId });
+      const category = await Category.findOne({ _id: categoryId });
       if (!category) {
         return sendError(res, 404, 'Category not found');
       }
@@ -135,14 +141,14 @@ const updateKeyword = async (req, res, next) => {
     await keyword.populate('category');
 
     const categoryData = keyword.category ? {
-      id: keyword.category.uuid,
+      id: keyword.category._id,
       name: keyword.category.name,
       displayName: keyword.category.displayName,
     } : null;
 
     sendSuccess(res, 200, 'Keyword updated successfully', {
       keyword: {
-        id: keyword.uuid,
+        id: keyword._id,
         word: keyword.word,
         category: categoryData,
         isEnabled: keyword.isEnabled,
@@ -161,14 +167,13 @@ const deleteKeyword = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const keyword = await Keyword.findOneAndDelete({ uuid: id });
-    if (!keyword) {
-      return sendError(res, 404, 'Keyword not found');
-    }
+    const keyword = await Keyword.findOneAndDelete({ _id: id });
 
+    // if keyword is null (mean that it is deleted before) the endpoint stills return 200 because
+    // delete method is idempotent
     sendSuccess(res, 200, 'Keyword deleted successfully', {
       deletedKeyword: {
-        id: keyword.uuid,
+        id: keyword._id,
         word: keyword.word,
       },
     });
@@ -185,7 +190,7 @@ const toggleKeyword = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const keyword = await Keyword.findOne({ uuid: id });
+    const keyword = await Keyword.findOne({ _id: id });
     if (!keyword) {
       return sendError(res, 404, 'Keyword not found');
     }
@@ -195,14 +200,14 @@ const toggleKeyword = async (req, res, next) => {
     await keyword.populate('category');
 
     const categoryData = keyword.category ? {
-      id: keyword.category.uuid,
+      id: keyword.category._id,
       name: keyword.category.name,
       displayName: keyword.category.displayName,
     } : null;
 
     sendSuccess(res, 200, 'Keyword toggled successfully', {
       keyword: {
-        id: keyword.uuid,
+        id: keyword._id,
         word: keyword.word,
         category: categoryData,
         isEnabled: keyword.isEnabled,

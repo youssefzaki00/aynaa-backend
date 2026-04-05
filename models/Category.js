@@ -3,12 +3,6 @@ const crypto = require('crypto');
 
 const categorySchema = new mongoose.Schema(
   {
-    uuid: {
-      type: String,
-      default: () => crypto.randomUUID(),
-      unique: true,
-      index: true,
-    },
     name: {
       type: String,
       required: [true, 'Category name is required'],
@@ -34,9 +28,8 @@ const categorySchema = new mongoose.Schema(
     timestamps: true,
     toJSON: {
       transform: (doc, ret) => {
-        ret.id = ret.uuid;
-        delete ret._id;
-        delete ret.uuid;
+        ret.id = ret._id.toString();
+        delete ret._id
         delete ret.__v;
         return ret;
       },

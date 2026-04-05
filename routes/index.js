@@ -9,6 +9,7 @@ const keywordRoutes = require('./keyword.routes');
 const whitelistRoutes = require('./whitelist.routes');
 const customizationRoutes = require('./customization.routes');
 const categoryRoutes = require('./category.routes');
+const siteRoutes = require('./site.routes');
 const authRoutes = require('./auth.routes');
 
 // Mount routes
@@ -17,7 +18,8 @@ router.use('/uninstall', uninstallRoutes);
 router.use('/suggestions', suggestionRoutes);
 router.use('/customization', customizationRoutes);
 router.use('/admin/categories', categoryRoutes);
-router.use('/admin/keywords', keywordRoutes);
+router.use('/keywords', keywordRoutes);
+router.use('/sites', siteRoutes);
 router.use('/admin/whitelist', whitelistRoutes);
 router.use('/auth', authRoutes);
 

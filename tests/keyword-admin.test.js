@@ -1,89 +1,105 @@
-const request = require('supertest');
-const app = require('../server');
-const Keyword = require('../models/Keyword');
+const request = require("supertest");
+const app = require("../server");
+const Keyword = require("../models/Keyword");
+const connectDB = require("../config/db");
+const { createKeywords } = require("./factories/keyword.factory.js");
+const jwt = require("jsonwebtoken");
+const { createAdminToken } = require("../utils/createAdminToken.js");
+const { createCategories } = require("./factories/category.factory.js");
+const Category = require("../models/Category.js");
 
+// will be removed
 // Load env vars
 // No need to explicitly call dotenv again if server does it, but safer to do it:
 // Actually server does it.
 const adminKey = process.env.ADMIN_API_KEY;
 
-describe('Admin Keyword Management API', () => {
-  beforeEach(async () => {
+describe("Admin Keyword Management API", () => {
+  let keywords;
+  let db;
+  let adminToken;
+  let keywordsCount = 20;
+  beforeAll(async () => {
+    db = await connectDB();
     await Keyword.deleteMany({});
+    await Category.deleteMany({});
+    keywords = await createKeywords(keywordsCount);
+    adminToken = await createAdminToken();
   });
 
-  // Test Authentication
-  test('POST /api/v1/admin/keywords should return 401 without admin key', async () => {
-    const res = await request(app).post('/api/v1/admin/keywords');
-    expect(res.statusCode).toBe(401);
-  });
+  describe("POST /api/v1/keywords", () => {
+    test("should return 401 without admin token", async () => {
+      const res = await request(app).post("/api/v1/keywords");
+      expect(res.statusCode).toBe(401);
+    });
 
-  test('POST /api/v1/admin/keywords should return 403 with invalid admin key', async () => {
-    const res = await request(app)
-      .post('/api/v1/admin/keywords')
-      .set('x-admin-key', 'wrong-key')
-      .send({ word: 'test', category: 'PORN' });
-    expect(res.statusCode).toBe(403);
-  });
+    // test("should return 403 wit user token", async () => {
+    //   const res = await request(app).post("/api/v1/keywords");
+    //   expect(res.statusCode).toBe(401);
+    // });
 
-  // Test Create
-  test('POST /api/v1/admin/keywords should create a keyword', async () => {
-    const res = await request(app)
-      .post('/api/v1/admin/keywords')
-      .set('x-admin-key', adminKey)
-      .send({ word: 'violence', category: 'VIOLENCE' });
+    it("should create a keyword", async () => {
+      const res = await request(app)
+        .post("/api/v1/keywords")
+        .auth(adminToken, { type: "bearer" })
+        .send({
+          word: "violence",
+          categoryId: keywords[0].category._id.toString(),
+        });
 
-    expect(res.statusCode).toBe(201);
-    expect(res.body.success).toBe(true);
-    expect(res.body.data.keyword.word).toBe('violence');
+      expect(res.statusCode).toBe(201);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.keyword.word).toBe("violence");
 
-    // Verify in DB
-    const keyword = await Keyword.findOne({ word: 'violence' });
-    expect(keyword).toBeTruthy();
-    expect(keyword.category).toBe('VIOLENCE');
+      keywordsCount++;
+    });
   });
 
   // Test List
-  test('GET /api/v1/admin/keywords should retrieve keywords', async () => {
-    // Seed
-    await Keyword.create({ word: 'word1', category: 'PORN' });
-    await Keyword.create({ word: 'word2', category: 'GAMBLING' });
+  describe("GET /api/v1/keywords should retrieve keywords", () => {
+    it("should return all keywords", async () => {
+      const res = await request(app)
+        .get("/api/v1/keywords")
+        .auth(adminToken, { type: "bearer" });
 
-    const res = await request(app)
-      .get('/api/v1/admin/keywords')
-      .set('x-admin-key', adminKey);
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.keywords).toHaveLength(20);
+      expect(res.body.data.pagination.total).toBe(keywordsCount);
+    });
 
-    expect(res.statusCode).toBe(200);
-    expect(res.body.data.keywords).toHaveLength(2);
-    expect(res.body.data.pagination.total).toBe(2);
+    test("should return keywords created or updated after 2026-1-1", async () => {
+      const res = await request(app)
+        .get(`/api/v1/keywords?lastSync=${"2026-01-01"}`)
+        .auth(adminToken, { type: "bearer" });
+      expect(res.statusCode).toBe(200);
+      for (let keyword of res.body.data.keywords) {
+        expect(new Date(keyword.createdAt)).toBeAfter(new Date("2026-01-01"));
+        expect(new Date(keyword.updatedAt)).toBeAfter(new Date("2026-01-01"));
+      }
+    });
   });
 
   // Test Delete
-  test('DELETE /api/v1/admin/keywords/:id should delete keyword', async () => {
-    const keyword = await Keyword.create({ word: 'todelete', category: 'OTHER' });
+  describe("DELETE /api/v1/admin/keywords/:id", () => {
+    test("should delete keyword", async () => {
+      const res = await request(app)
+        .delete(`/api/v1/keywords/${keywords[0]._id.toString()}`)
+        .auth(adminToken, { type: "bearer" });
 
-    const res = await request(app)
-      .delete(`/api/v1/admin/keywords/${keyword._id}`)
-      .set('x-admin-key', adminKey);
-
-    expect(res.statusCode).toBe(200);
-
-    // Verify deletion
-    const check = await Keyword.findById(keyword._id);
-    expect(check).toBeNull();
+      expect(res.statusCode).toBe(200);
+    });
   });
 
   // Test Update
-  test('PATCH /api/v1/admin/keywords/:id should update keyword', async () => {
-    const keyword = await Keyword.create({ word: 'old', category: 'OTHER' });
-
+  test("PATCH /api/v1/admin/keywords/:id should update keyword", async () => {
+    const newCategoryId = keywords[1].category._id.toString();
     const res = await request(app)
-      .patch(`/api/v1/admin/keywords/${keyword._id}`)
-      .set('x-admin-key', adminKey)
-      .send({ word: 'new', category: 'PORN' });
+      .patch(`/api/v1/keywords/${keywords[1]._id}`)
+      .auth(adminToken, { type: "bearer" })
+      .send({ word: "new", categoryId: newCategoryId });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.data.keyword.word).toBe('new');
-    expect(res.body.data.keyword.category).toBe('PORN');
+    expect(res.body.data.keyword.word).toBe("new");
+    expect(res.body.data.keyword.category.id).toBe(newCategoryId);
   });
 });

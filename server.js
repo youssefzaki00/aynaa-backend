@@ -3,6 +3,8 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const morgan = require('morgan');
+const swaggerJsdoc = require('swagger-jsdoc');
+const swaggerUi = require('swagger-ui-express');
 const connectDB = require('./config/db');
 const { globalLimiter } = require('./middleware/rateLimiter');
 const errorHandler = require('./middleware/errorHandler');
@@ -11,6 +13,192 @@ const sanitizeRequest = require('./middleware/sanitization'); // نقلت الا
 
 // Initialize Express app
 const app = express();
+
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'Wekayaa Backend API',
+      version: '1.0.0',
+      description: 'Production-ready REST API for Wekayaa - Parental Control & Content Filtering Android App',
+    },
+    servers: [
+      {
+        url: 'http://localhost:5000/api/v1',
+        description: 'Development server',
+      },
+      {
+        url: 'https://api.wekayaa.com/api/v1',
+        description: 'Production server',
+      },
+    ],
+    components: {
+      securitySchemes: {
+        ApiKeyAuth: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'x-api-key',
+          description: 'API key for client authentication',
+        },
+        AdminKeyAuth: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'x-admin-key',
+          description: 'Admin API key for administrative operations',
+        },
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'JWT token for authentication',
+        },
+      },
+      schemas: {
+        User: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'User ID',
+            },
+            deviceId: {
+              type: 'string',
+              description: 'Device identifier',
+            },
+            role: {
+              type: 'string',
+              enum: ['user', 'admin'],
+              description: 'User role',
+            },
+            username: {
+              type: 'string',
+              description: 'Username',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Account creation timestamp',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+            },
+          },
+        },
+        Keyword: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Keyword ID',
+            },
+            word: {
+              type: 'string',
+              description: 'The keyword text',
+            },
+            category: {
+              $ref: '#/components/schemas/Category',
+              description: 'Category object containing category details',
+            },
+            isEnabled: {
+              type: 'boolean',
+              description: 'Whether the keyword is active',
+              default: true,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+            },
+          },
+        },
+        Category: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Category ID',
+            },
+            name: {
+              type: 'string',
+              description: 'Category name (uppercase)',
+            },
+            displayName: {
+              type: 'string',
+              description: 'Human-readable category name',
+            },
+            description: {
+              type: 'string',
+              description: 'Category description',
+            },
+            isActive: {
+              type: 'boolean',
+              description: 'Whether the category is active',
+              default: true,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+            },
+          },
+        },
+        Site: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              description: 'Site ID',
+            },
+            url: {
+              type: 'string',
+              format: 'uri',
+              description: 'Site URL',
+            },
+            isActive: {
+              type: 'boolean',
+              description: 'Whether the site is active',
+              default: true,
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+            },
+          },
+        },
+      },
+    },
+    security: [
+      {
+        ApiKeyAuth: [],
+      },
+    ],
+  },
+  apis: ['./routes/*.js'], // Path to the API routes
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+
+// Swagger UI route
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const corsOptions = {
   origin: [

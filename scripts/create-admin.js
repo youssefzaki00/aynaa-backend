@@ -1,7 +1,8 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
-const Admin = require('../models/Admin');
+const User = require('../models/User');
 const connectDB = require('../config/db');
+const { UserRoles } = require('../config/constant');
 
 const args = process.argv.slice(2);
 const username = args[0];
@@ -17,7 +18,7 @@ const createAdmin = async () => {
     await connectDB();
 
     // Check if admin exists
-    const adminExists = await Admin.findOne({ username });
+    const adminExists = await User.findOne({ username });
 
     if (adminExists) {
       console.log('Admin user already exists');
@@ -25,10 +26,10 @@ const createAdmin = async () => {
     }
 
     // Create admin
-    const admin = await Admin.create({
+    const admin = await User.create({
       username,
       password,
-      role: 'superadmin',
+      role: UserRoles.ADMIN,
     });
 
     console.log(`Admin user created successfully: ${admin.username}`);

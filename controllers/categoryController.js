@@ -69,7 +69,7 @@ const getCategoryById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const category = await Category.findOne({ uuid: id });
+    const category = await Category.findOne({ _id: id });
     if (!category) {
       return sendError(res, 404, 'Category not found');
     }
@@ -97,7 +97,7 @@ const updateCategory = async (req, res, next) => {
     const { id } = req.params;
     const { name, displayName, description } = req.body;
 
-    const category = await Category.findOne({ uuid: id });
+    const category = await Category.findOne({ _id: id });
     if (!category) {
       return sendError(res, 404, 'Category not found');
     }
@@ -127,7 +127,7 @@ const deleteCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const category = await Category.findOne({ uuid: id });
+    const category = await Category.findOne({ _id: id });
     if (!category) {
       return sendError(res, 404, 'Category not found');
     }
@@ -142,11 +142,11 @@ const deleteCategory = async (req, res, next) => {
       );
     }
 
-    await Category.findOneAndDelete({ uuid: id });
+    await Category.findOneAndDelete({ _id: id });
 
     sendSuccess(res, 200, 'Category deleted successfully', {
       deletedCategory: {
-        id: category.uuid,
+        id: category._id,
         name: category.name,
         displayName: category.displayName,
       },
@@ -164,7 +164,7 @@ const toggleCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const category = await Category.findOne({ uuid: id });
+    const category = await Category.findOne({ _id: id });
     if (!category) {
       return sendError(res, 404, 'Category not found');
     }

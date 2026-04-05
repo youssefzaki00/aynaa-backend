@@ -1,3 +1,8 @@
+/**
+ * want to refactored to not send all keywords and whitelist to the client
+ * instead, we can implement pull sync
+ */
+
 const Device = require('../models/Device');
 const Keyword = require('../models/Keyword');
 const GlobalWhitelist = require('../models/GlobalWhitelist');

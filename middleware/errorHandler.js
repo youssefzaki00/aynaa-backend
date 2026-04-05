@@ -1,28 +1,30 @@
+const ForbiddedException = require("../exceptions/ForbiddenException");
+
 // Global Error Handler Middleware
 const errorHandler = (err, req, res, next) => {
-  console.error('Error:', err);
+  console.error("Error:", err);
 
   // Multer file upload errors
-  if (err.code === 'LIMIT_FILE_SIZE') {
+  if (err.code === "LIMIT_FILE_SIZE") {
     return res.status(400).json({
       success: false,
-      message: 'File size exceeds the 5MB limit.',
+      message: "File size exceeds the 5MB limit.",
     });
   }
 
-  if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+  if (err.code === "LIMIT_UNEXPECTED_FILE") {
     return res.status(400).json({
       success: false,
-      message: 'Too many files uploaded.',
+      message: "Too many files uploaded.",
     });
   }
 
   // Mongoose validation errors
-  if (err.name === 'ValidationError') {
+  if (err.name === "ValidationError") {
     const messages = Object.values(err.errors).map((e) => e.message);
     return res.status(400).json({
       success: false,
-      message: messages.join(', '),
+      message: messages.join(", "),
     });
   }
 
@@ -36,17 +38,26 @@ const errorHandler = (err, req, res, next) => {
   }
 
   // Mongoose CastError
-  if (err.name === 'CastError') {
+  if (err.name === "CastError") {
     return res.status(400).json({
       success: false,
-      message: 'Invalid ID format.',
+      message: "Invalid ID format.",
+    });
+  }
+
+  // Forbidde error response
+  if (err instanceof ForbiddedException) {
+    return res.status(403).json({
+      success: false,
+      code: 403,
+      message: err.message || "Forbidden resource",
     });
   }
 
   // Default error response
   res.status(err.statusCode || 500).json({
     success: false,
-    message: err.message || 'Internal server error.',
+    message: err.message || "Internal server error.",
   });
 };
 
