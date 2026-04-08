@@ -19,11 +19,6 @@ const siteSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
-    isBlocked: {
-      type: Boolean,
-      default: true,
-      index: true,
-    }
   },
   {
     timestamps: true,
