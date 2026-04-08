@@ -91,7 +91,7 @@ const getKeywords = async (req, res, next) => {
       },
     });
 
-    // Transform keywords to use category.id instead of category._id
+    // deprecated
     const transformedKeywords = keywords.map(keyword => {
       const keywordObj = keyword.toJSON();
       if (keywordObj.category) {

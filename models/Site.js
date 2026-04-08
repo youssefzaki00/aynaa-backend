@@ -1,19 +1,29 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const siteSchema = new mongoose.Schema(
   {
     url: {
       type: String,
-      required: [true, 'URL is required'],
+      required: [true, "URL is required"],
       trim: true,
       unique: true,
       lowercase: true,
+    },
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: [true, "Category is required"],
     },
     isActive: {
       type: Boolean,
       default: true,
       index: true,
     },
+    isBlocked: {
+      type: Boolean,
+      default: true,
+      index: true,
+    }
   },
   {
     timestamps: true,
@@ -25,7 +35,7 @@ const siteSchema = new mongoose.Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
-module.exports = mongoose.model('Site', siteSchema);
+module.exports = mongoose.model("Site", siteSchema);
