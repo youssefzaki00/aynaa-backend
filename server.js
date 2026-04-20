@@ -196,10 +196,10 @@ const swaggerOptions = {
   },
   // Resolve from __dirname (not cwd). Use explicit site.routes.js — globbing site/*.js
   // can miss files on some VPS setups; removed duplicate routes/site.routes.js from scan.
-  apis: [
-    path.join(__dirname, "routes", "*.js"),
-    path.join(__dirname, "site", "site.routes.js"),
-  ],
+ apis: [
+  "./routes/*.js",
+  "./site/site.routes.js",
+],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
