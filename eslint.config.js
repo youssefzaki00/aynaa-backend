@@ -29,7 +29,7 @@ export default [
         {
           endOfLine: "auto",
           semi: true,
-          singleQuote: false,
+          singleQuote: "off",
           tabWidth: 2,
           trailingComma: "es5",
         },
