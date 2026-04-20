@@ -21,7 +21,7 @@ const swaggerOptions = {
     openapi: "3.0.0",
     info: {
       title: "aynaa Backend API",
-      version: "1.0.1",
+      version: "1.0.2",
       description:
         "Production-ready REST API for aynaa - Parental Control & Content Filtering Android App",
     },
@@ -194,10 +194,11 @@ const swaggerOptions = {
       },
     ],
   },
-  // Resolve globs from this file so Swagger matches cwd-independent deployments (e.g. VPS/PM2).
+  // Resolve from __dirname (not cwd). Use explicit site.routes.js — globbing site/*.js
+  // can miss files on some VPS setups; removed duplicate routes/site.routes.js from scan.
   apis: [
     path.join(__dirname, "routes", "*.js"),
-    path.join(__dirname, "site", "*.js"),
+    path.join(__dirname, "site", "site.routes.js"),
   ],
 };
 
