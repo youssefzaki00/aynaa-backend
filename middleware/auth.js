@@ -19,9 +19,9 @@ const authenticateAPI = (req, res, next) => {
   next();
 };
 
-const jwt = require("jsonwebtoken");
-const User = require("../models/User");
-const { JWT_SECRET } = require("../config/constant");
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const { JWT_SECRET } = require('../config/constant');
 
 // Protect routes - JWT Verification
 const protect = async (req, res, next) => {
@@ -39,8 +39,8 @@ const protect = async (req, res, next) => {
       const decoded = jwt.verify(token, JWT_SECRET);
 
       // Get admin from the token
-      req.user = await User.findById(decoded.id).select("-password");
-
+      req.user = await User.findById(decoded.id).select('-password');
+      
       if (!req.user) {
         return res.status(401).json({
           success: false,

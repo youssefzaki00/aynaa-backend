@@ -1,0 +1,3 @@
+exports = {
+    SITES_UPLOAD_PATCH_ACCUMULATOR_SIZE : 1000
+}
