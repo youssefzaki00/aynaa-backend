@@ -1,6 +1,11 @@
 const { Transform } = require("stream");
 
-
+/**
+ * Transform stream that extracts hostnames from a hosts-format upload file.
+ *
+ * Only lines that begin with `0.0.0.0 ` are considered valid imports.
+ * Invalid lines are ignored silently.
+ */
 exports.urlParser = new Transform({
   objectMode: true,
   transform(chunk, encoding, callback) {

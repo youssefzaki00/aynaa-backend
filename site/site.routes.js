@@ -156,6 +156,44 @@ router.patch("/:id", protect, adminOnly, updateSite);
  */
 router.delete("/:id", protect, adminOnly, deleteSite);
 
+/**
+ * @swagger
+ * /sites/upload:
+ *   post:
+ *     tags: [Sites]
+ *     summary: Upload a text file of blocked sites for bulk import
+ *     description: |
+ *       Upload a plain text file containing host entries in the format `0.0.0.0 example.com`.
+ *       Each valid line is parsed, converted into a site document, and inserted in batches.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file, categoryId]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *                 description: "Text file with one blocked site entry per line"
+ *               categoryId:
+ *                 type: string
+ *                 description: "Category ID to assign to all imported sites"
+ *     responses:
+ *       200:
+ *         description: Sites seeded successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string, example: "Sites is seeded successfully" }
+ *       400: { description: "Bad request or validation error" }
+ *       404: { description: "Category not found" }
+ *       500: { description: "Internal server error" }
+ */
 router.post("/upload", upload.single("file"), uploadSitesFile);
 
 module.exports = router;

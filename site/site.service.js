@@ -5,6 +5,22 @@ const { urlParser } = require("./transformerStreams/urlParser");
 const { getDocTransformer } = require("./transformerStreams/docTransformer");
 const { batchAccumulator } = require("./transformerStreams/batchAccumulator");
 
+/**
+ * Seed a text upload file to the sites collection.
+ *
+ * The uploaded file is read as a stream and processed through a transform pipeline:
+ *   1. split2 - split incoming stream into individual lines
+ *   2. urlParser - extract valid host entries from each line
+ *   3. getDocTransformer - convert each URL into a site document
+ *   4. batchAccumulator - insert documents in batches for efficiency
+ *
+ * After processing completes, the uploaded file is removed from disk.
+ *
+ * @param {string} filepath - Path to the uploaded file on disk.
+ * @param {string} categoryId - MongoDB category ID to assign to each imported site.
+ * @returns {Promise<void>}
+ * @throws {Error} When category is missing or file processing fails.
+ */
 exports.seedSitesFileToDB = async (filepath, categoryId) => {
   // Check if category exists
   const category = await Category.findById(categoryId);
