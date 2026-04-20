@@ -1,7 +1,7 @@
 const request = require("supertest");
 const app = require("../server");
 const connectDB = require("../config/db");
-const Site = require("../models/Site");
+const Site = require("../site/Site");
 const { createAdminToken } = require("../utils/createAdminToken");
 const User = require("../models/User");
 const Category = require("../models/Category");
@@ -13,23 +13,22 @@ describe("Sites API", () => {
   let adminToken;
   let categories;
   let userToken;
-  let categoryId
+  let categoryId;
 
   beforeAll(async () => {
     db = await connectDB();
     await Category.deleteMany({});
+    await User.deleteMany({});
+
     await Site.deleteMany({});
     categories = await createCategories();
 
     adminToken = await createAdminToken();
     userToken = await createUserToken();
-    categoryId = categories[0]._id.toString()
+    categoryId = categories[0]._id.toString();
   });
 
   afterAll(async () => {
-    await Site.deleteMany({});
-    await User.deleteMany({});
-    await Category.deleteMany({});
     await db.connection.close();
   });
 
@@ -41,7 +40,6 @@ describe("Sites API", () => {
         url: "https://example.com",
         categoryId: categoryId,
       });
-    console.log(res.body.message);
     expect(res.statusCode).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data.site.id).toBeDefined();
@@ -115,5 +113,22 @@ describe("Sites API", () => {
 
     const removed = await Site.findById(site._id);
     expect(removed).toBeNull();
+  });
+
+  describe("POST /api/v1/sites/upload", () => {
+    test("upload sites file", async () => {
+      const res = await request(app)
+        .post("/api/v1/sites/upload")
+        .auth(adminToken, { type: "bearer" })
+        .attach("file", "tests/assets/test.txt")
+        .field("categoryId", categories[0]._id.toString());
+
+      expect(res.statusCode).toBe(200);
+
+      const sites = await Site.find({})
+
+      expect(sites.length).toBeGreaterThanOrEqual(10)
+
+    });
   });
 });
