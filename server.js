@@ -192,7 +192,7 @@ const swaggerOptions = {
       },
     ],
   },
-  apis: ['./routes/*.js'], // Path to the API routes
+  apis: ['./routes/*.js', './site/*.js'], // Path to the API and site route files
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
