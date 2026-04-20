@@ -1,7 +1,7 @@
 {
-  "name": "wekayaa-backend",
+  "name": "aynaa-backend",
   "version": "1.0.0",
-  "description": "Backend API for wekayaa Parental Control & Content Filtering App",
+  "description": "Backend API for aynaa Parental Control & Content Filtering App",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

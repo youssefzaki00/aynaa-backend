@@ -1,4 +1,4 @@
-# Wekayaa Admin Dashboard - API Documentation
+# aynaa Admin Dashboard - API Documentation
 
 ## Base URL
 ```

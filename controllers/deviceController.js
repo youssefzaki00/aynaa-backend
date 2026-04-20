@@ -33,12 +33,16 @@ const getDeviceConfig = async (req, res, next) => {
     );
 
     // Fetch all enabled keywords
-    const globalKeywords = await Keyword.find({ isEnabled: true }).select('word -_id');
-    const globalKeywordList = globalKeywords.map(k => k.word);
+    const globalKeywords = await Keyword.find({ isEnabled: true }).select(
+      'word -_id'
+    );
+    const globalKeywordList = globalKeywords.map((k) => k.word);
 
     // Fetch global whitelist
-    const globalWhitelist = await GlobalWhitelist.find().select('packageName appName -_id');
-    const globalWhitelistList = globalWhitelist.map(w => ({
+    const globalWhitelist = await GlobalWhitelist.find().select(
+      'packageName appName -_id'
+    );
+    const globalWhitelistList = globalWhitelist.map((w) => ({
       packageName: w.packageName,
       appName: w.appName,
     }));
@@ -48,14 +52,17 @@ const getDeviceConfig = async (req, res, next) => {
     let finalKeywordsMap = new Map();
 
     // Add global keywords
-    globalKeywords.forEach(k => {
+    globalKeywords.forEach((k) => {
       finalKeywordsMap.set(k.word, { word: k.word, category: k.category });
     });
 
     // Add custom blocked keywords
-    if (device.customBlockedKeywords && device.customBlockedKeywords.length > 0) {
-      device.customBlockedKeywords.forEach(word => {
-        // If it already exists (globally), this just confirms it. 
+    if (
+      device.customBlockedKeywords &&
+      device.customBlockedKeywords.length > 0
+    ) {
+      device.customBlockedKeywords.forEach((word) => {
+        // If it already exists (globally), this just confirms it.
         // If not, we add it with a custom category.
         if (!finalKeywordsMap.has(word)) {
           finalKeywordsMap.set(word, { word, category: 'CUSTOM' });
@@ -64,8 +71,11 @@ const getDeviceConfig = async (req, res, next) => {
     }
 
     // Remove custom allowed keywords
-    if (device.customAllowedKeywords && device.customAllowedKeywords.length > 0) {
-      device.customAllowedKeywords.forEach(word => {
+    if (
+      device.customAllowedKeywords &&
+      device.customAllowedKeywords.length > 0
+    ) {
+      device.customAllowedKeywords.forEach((word) => {
         finalKeywordsMap.delete(word);
       });
     }
@@ -74,21 +84,31 @@ const getDeviceConfig = async (req, res, next) => {
     // Start with global whitelist
     // We use a Map for whitelist to easily handle removals by package name
     let finalWhitelistMap = new Map();
-    globalWhitelistList.forEach(app => finalWhitelistMap.set(app.packageName, app));
+    globalWhitelistList.forEach((app) =>
+      finalWhitelistMap.set(app.packageName, app)
+    );
 
     // Add custom whitelisted apps
-    if (device.customWhitelistedApps && device.customWhitelistedApps.length > 0) {
-      device.customWhitelistedApps.forEach(pkg => {
+    if (
+      device.customWhitelistedApps &&
+      device.customWhitelistedApps.length > 0
+    ) {
+      device.customWhitelistedApps.forEach((pkg) => {
         if (!finalWhitelistMap.has(pkg)) {
-            // Default appName if not available (since we only store package name strings)
-            finalWhitelistMap.set(pkg, { packageName: pkg, appName: pkg });
+          // Default appName if not available (since we only store package name strings)
+          finalWhitelistMap.set(pkg, { packageName: pkg, appName: pkg });
         }
       });
     }
 
     // Remove custom blacklisted apps
-    if (device.customBlacklistedApps && device.customBlacklistedApps.length > 0) {
-      device.customBlacklistedApps.forEach(pkg => finalWhitelistMap.delete(pkg));
+    if (
+      device.customBlacklistedApps &&
+      device.customBlacklistedApps.length > 0
+    ) {
+      device.customBlacklistedApps.forEach((pkg) =>
+        finalWhitelistMap.delete(pkg)
+      );
     }
 
     sendSuccess(res, 200, 'Device configuration retrieved successfully', {
@@ -101,5 +121,3 @@ const getDeviceConfig = async (req, res, next) => {
 };
 
 module.exports = { getDeviceConfig };
-
-

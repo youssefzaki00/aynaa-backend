@@ -1,19 +1,19 @@
-import js from '@eslint/js';
-import globals from 'globals';
-import eslintPluginPrettier from 'eslint-plugin-prettier';
-import eslintConfigPrettier from 'eslint-config-prettier';
+import js from "@eslint/js";
+import globals from "globals";
+import eslintPluginPrettier from "eslint-plugin-prettier";
+import eslintConfigPrettier from "eslint-config-prettier";
 
 export default [
   {
     // تجاهل المجلدات التي لا تحتاج لفحص
-    ignores: ['node_modules', 'dist', 'coverage'],
+    ignores: ["node_modules", "dist", "coverage"],
   },
   {
     // استهداف كافة ملفات الجافا سكريبت
-    files: ['**/*.{js,jsx,mjs,cjs}'],
+    files: ["**/*.{js,jsx,mjs,cjs}"],
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
+      ecmaVersion: "latest",
+      sourceType: "module",
       globals: {
         ...globals.node, // لتعريف process, __dirname, إلخ
         ...globals.es2021,
@@ -24,18 +24,18 @@ export default [
     },
     rules: {
       ...js.configs.recommended.rules,
-      'prettier/prettier': [
-        'error',
+      "prettier/prettier": [
+        "error",
         {
-          endOfLine: 'auto',
+          endOfLine: "auto",
           semi: true,
-          singleQuote: true,
+          singleQuote: false,
           tabWidth: 2,
-          trailingComma: 'es5',
+          trailingComma: "es5",
         },
       ],
-      'no-unused-vars': 'warn',
-      'no-console': 'off', // مسموح في السيرفر للـ Logging
+      "no-unused-vars": "warn",
+      "no-console": "off", // مسموح في السيرفر للـ Logging
     },
   },
   eslintConfigPrettier, // لضمان عدم تداخل القواعد

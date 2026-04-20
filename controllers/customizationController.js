@@ -2,11 +2,11 @@ const CustomizationRequest = require('../models/CustomizationRequest');
 const Device = require('../models/Device');
 const { sendSuccess, sendError } = require('../utils/response');
 const { executePaginatedQuery } = require('../utils/pagination');
-const { 
-  isValidCustomizationType, 
-  isValidReviewStatus, 
+const {
+  isValidCustomizationType,
+  isValidReviewStatus,
   canBeReviewed,
-  validateRequiredFields 
+  validateRequiredFields,
 } = require('../utils/validation');
 const { CUSTOMIZATION_TYPES, REVIEW_STATUSES } = require('../config/constant');
 
@@ -18,13 +18,26 @@ const submitCustomizationRequest = async (req, res, next) => {
   try {
     const { deviceId, type, content, appName, reason } = req.body;
 
-    const validation = validateRequiredFields(req.body, ['deviceId', 'type', 'content', 'reason']);
+    const validation = validateRequiredFields(req.body, [
+      'deviceId',
+      'type',
+      'content',
+      'reason',
+    ]);
     if (!validation.valid) {
-      return sendError(res, 400, `Missing required fields: ${validation.missing.join(', ')}`);
+      return sendError(
+        res,
+        400,
+        `Missing required fields: ${validation.missing.join(', ')}`
+      );
     }
 
     if (!isValidCustomizationType(type)) {
-      return sendError(res, 400, `Invalid request type. Allowed: ${CUSTOMIZATION_TYPES.join(', ')}`);
+      return sendError(
+        res,
+        400,
+        `Invalid request type. Allowed: ${CUSTOMIZATION_TYPES.join(', ')}`
+      );
     }
 
     // Verify device exists
@@ -38,11 +51,15 @@ const submitCustomizationRequest = async (req, res, next) => {
       deviceId,
       type,
       content,
-      status: 'PENDING'
+      status: 'PENDING',
     });
 
     if (existingRequest) {
-      return sendError(res, 400, 'A pending request for this content already exists');
+      return sendError(
+        res,
+        400,
+        'A pending request for this content already exists'
+      );
     }
 
     const request = await CustomizationRequest.create({
@@ -125,7 +142,11 @@ const reviewCustomizationRequest = async (req, res, next) => {
     const { status, adminNote } = req.body;
 
     if (!status || !isValidReviewStatus(status)) {
-      return sendError(res, 400, `Valid status required. Allowed: ${REVIEW_STATUSES.join(', ')}`);
+      return sendError(
+        res,
+        400,
+        `Valid status required. Allowed: ${REVIEW_STATUSES.join(', ')}`
+      );
     }
 
     const request = await CustomizationRequest.findOne({ uuid: id });
@@ -145,7 +166,7 @@ const reviewCustomizationRequest = async (req, res, next) => {
     // If APPROVED, update the Device model
     if (status === 'APPROVED') {
       const device = await Device.findOne({ deviceId: request.deviceId });
-      
+
       if (device) {
         switch (request.type) {
           case 'CUSTOM_BLOCK_KEYWORD':
@@ -171,7 +192,9 @@ const reviewCustomizationRequest = async (req, res, next) => {
         }
         await device.save();
       } else {
-        console.warn(`[CustomizationReview] Device ${request.deviceId} not found for approved request ${request._id}`);
+        console.warn(
+          `[CustomizationReview] Device ${request.deviceId} not found for approved request ${request._id}`
+        );
       }
     }
 

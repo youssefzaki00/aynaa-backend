@@ -1,8 +1,8 @@
 {
 	"info": {
-		"_postman_id": "wekayaa-api-123456",
-		"name": "Wekayaa API",
-		"description": "API requests for testing the Wekayaa Parental Control & Content Filtering Backend.",
+		"_postman_id": "aynaa-api-123456",
+		"name": "aynaa API",
+		"description": "API requests for testing the aynaa Parental Control & Content Filtering Backend.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
