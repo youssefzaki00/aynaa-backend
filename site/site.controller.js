@@ -1,9 +1,10 @@
 const { DEFAULT_PAGINATION } = require("../config/constant");
-const Site = require("../models/Site");
+const Site = require("./Site");
 const Category = require("../models/Category");
 const { executePaginatedQuery } = require("../utils/pagination");
 const { sendSuccess, sendError } = require("../utils/response");
 const { validateRequiredFields } = require("../utils/validation");
+const { seedSitesFileToDB } = require("./site.service");
 
 const createSite = async (req, res, next) => {
   try {
@@ -140,9 +141,21 @@ const deleteSite = async (req, res, next) => {
   }
 };
 
+const uploadSitesFile = async (req, res, next)=>{
+  try {
+    await seedSitesFileToDB(req.file.path, req.body.categoryId)
+  
+    return sendSuccess(res, 200, "Sites is seeded successfully");
+    
+  } catch (error) {
+    next(error)
+  }
+}
+
 module.exports = {
   createSite,
   getSites,
   updateSite,
   deleteSite,
+  uploadSitesFile
 };

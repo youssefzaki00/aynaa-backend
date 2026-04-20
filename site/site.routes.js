@@ -1,13 +1,16 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 const {
   createSite,
   getSites,
   updateSite,
   deleteSite,
-} = require('../controllers/siteController');
-const { protect } = require('../middleware/auth');
-const adminOnly = require('../middleware/adminOnly');
+  uploadSitesFile,
+} = require("./site.controller");
+const { protect } = require("../middleware/auth");
+const adminOnly = require("../middleware/adminOnly");
+const multer = require("multer");
+const upload = multer({ dest: "uploads/" });
 
 /**
  * @swagger
@@ -43,7 +46,7 @@ const adminOnly = require('../middleware/adminOnly');
  *                   items: { $ref: '#/components/schemas/Site' }
  *       401: { description: "Unauthorized" }
  */
-router.get('/', protect, getSites);
+router.get("/", protect, getSites);
 
 /**
  * @swagger
@@ -80,7 +83,7 @@ router.get('/', protect, getSites);
  *       403: { description: "Admin access required" }
  *       409: { description: "Site exists" }
  */
-router.post('/', protect, adminOnly, createSite);
+router.post("/", protect, adminOnly, createSite);
 
 /**
  * @swagger
@@ -122,7 +125,7 @@ router.post('/', protect, adminOnly, createSite);
  *       403: { description: "Admin access required" }
  *       404: { description: "Site not found" }
  */
-router.patch('/:id', protect, adminOnly, updateSite);
+router.patch("/:id", protect, adminOnly, updateSite);
 
 /**
  * @swagger
@@ -151,6 +154,8 @@ router.patch('/:id', protect, adminOnly, updateSite);
  *       403: { description: "Admin access required" }
  *       404: { description: "Site not found" }
  */
-router.delete('/:id', protect, adminOnly, deleteSite);
+router.delete("/:id", protect, adminOnly, deleteSite);
+
+router.post("/upload", upload.single("file"), uploadSitesFile);
 
 module.exports = router;

@@ -9,7 +9,7 @@ const keywordRoutes = require('./keyword.routes');
 const whitelistRoutes = require('./whitelist.routes');
 const customizationRoutes = require('./customization.routes');
 const categoryRoutes = require('./category.routes');
-const siteRoutes = require('./site.routes');
+const siteRoutes = require('../site/site.routes');
 const authRoutes = require('./auth.routes');
 
 // Mount routes
