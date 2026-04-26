@@ -24,11 +24,11 @@ describe('Auth API', () => {
     expect(res.body.data.token).toBeTruthy();
   });
 
-  test('POST /api/v1/auth/login?role=user should succeed for existing deviceId', async () => {
+  test('POST /api/v1/auth/user/login should succeed for existing deviceId', async () => {
     await User.create({ deviceId: 'device-abc', role: 'user' });
 
     const res = await request(app)
-      .post('/api/v1/auth/login?role=user')
+      .post('/api/v1/auth/user/login')
       .send({ deviceId: 'device-abc' });
 
     expect(res.statusCode).toBe(200);
@@ -37,11 +37,11 @@ describe('Auth API', () => {
     expect(res.body.data.token).toBeTruthy();
   });
 
-  test('POST /api/v1/auth/login?role=admin should succeed with username/password', async () => {
+  test('POST /api/v1/auth/admin/login should succeed with username/password', async () => {
     await User.create({ username: 'admin', password: 'Password1!', role: UserRoles.ADMIN });
 
     const res = await request(app)
-      .post('/api/v1/auth/login?role=admin')
+      .post('/api/v1/auth/admin/login')
       .send({ username: 'admin', password: 'Password1!' });
 
     expect(res.statusCode).toBe(200);
@@ -53,7 +53,7 @@ describe('Auth API', () => {
   test('GET /api/v1/auth/me should return current authenticated user', async () => {
     const user = await User.create({ deviceId: 'device-xyz', role: 'user' });
     const loginRes = await request(app)
-      .post('/api/v1/auth/login?role=user')
+      .post('/api/v1/auth/user/login')
       .send({ deviceId: 'device-xyz' });
 
     expect(loginRes.body.data.token).toBeTruthy();

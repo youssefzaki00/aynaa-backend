@@ -194,6 +194,12 @@ router.delete("/:id", protect, adminOnly, deleteSite);
  *       404: { description: "Category not found" }
  *       500: { description: "Internal server error" }
  */
-router.post("/upload", upload.single("file"), uploadSitesFile);
+router.post(
+  "/upload",
+  protect,
+  adminOnly,
+  upload.single("file"),
+  uploadSitesFile,
+);
 
 module.exports = router;

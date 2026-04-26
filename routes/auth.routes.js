@@ -1,7 +1,7 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { login, getMe, signUpAsUser } = require('../controllers/authController');
-const { protect } = require('../middleware/auth');
+const { loginUser, loginAdmin, getMe, signUpAsUser } = require("../auth/auth.controller");
+const { protect } = require("../middleware/auth");
 
 /**
  * @swagger
@@ -15,10 +15,9 @@ const { protect } = require('../middleware/auth');
  *         application/json:
  *           schema:
  *             type: object
- *             required: [email, password]
+ *             required: [deviceId]
  *             properties:
- *               email: { type: string, format: email, description: "User email" }
- *               password: { type: string, minLength: 6, description: "User password" }
+ *               deviceId: { type: string, description: "Device identifier" }
  *     responses:
  *       201:
  *         description: User created
@@ -37,11 +36,11 @@ const { protect } = require('../middleware/auth');
  *       400: { description: "Validation error" }
  *       409: { description: "User exists" }
  */
-router.post('/signup', signUpAsUser);
+router.post("/signup", signUpAsUser);
 
 /**
  * @swagger
- * /auth/login:
+ * /auth/user/login:
  *   post:
  *     tags: [Authentication]
  *     summary: Login user
@@ -51,10 +50,11 @@ router.post('/signup', signUpAsUser);
  *         application/json:
  *           schema:
  *             type: object
- *             required: [email, password]
+ *             required: [deviceId]
  *             properties:
- *               email: { type: string, format: email, description: "User email" }
- *               password: { type: string, description: "User password" }
+ *               deviceId:
+ *                 type: string
+ *                 description: Device identifier
  *     responses:
  *       200:
  *         description: Login successful
@@ -70,10 +70,50 @@ router.post('/signup', signUpAsUser);
  *                   properties:
  *                     user: { $ref: '#/components/schemas/User' }
  *                     token: { type: string, description: "JWT token" }
- *       400: { description: "Invalid credentials" }
- *       401: { description: "Unauthorized" }
+ *       400: { description: "Validation error" }
+ *       401: { description: "Invalid credentials" }
  */
-router.post('/login', login);
+router.post("/user/login", loginUser);
+
+/**
+ * @swagger
+ * /auth/admin/login:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Login admin
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [username, password]
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 description: Admin username
+ *               password:
+ *                 type: string
+ *                 description: Admin password
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string, example: "Login successful" }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     admin: { $ref: '#/components/schemas/User' }
+ *                     token: { type: string, description: "JWT token" }
+ *       400: { description: "Validation error" }
+ *       401: { description: "Invalid credentials" }
+ */
+router.post("/admin/login", loginAdmin);
 
 /**
  * @swagger
@@ -95,6 +135,6 @@ router.post('/login', login);
  *       401: { description: "Unauthorized" }
  *       404: { description: "User not found" }
  */
-router.get('/me', protect, getMe);
+router.get("/me", protect, getMe);
 
 module.exports = router;

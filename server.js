@@ -186,6 +186,34 @@ const swaggerOptions = {
             },
           },
         },
+        ExcludedApp: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              description: "Excluded app ID",
+            },
+            packageName: {
+              type: "string",
+              description: "App package name to exclude from filtering",
+            },
+            isActive: {
+              type: "boolean",
+              description: "Whether the exclusion is active",
+              default: true,
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              description: "Creation timestamp",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+              description: "Last update timestamp",
+            },
+          },
+        },
       },
     },
     security: [
@@ -199,6 +227,7 @@ const swaggerOptions = {
  apis: [
   "./routes/*.js",
   "./site/site.routes.js",
+  "./keywords-blocking-excluded-app/excluded-app.routes.js",
 ],
 };
 

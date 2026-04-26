@@ -11,6 +11,7 @@ const customizationRoutes = require('./customization.routes');
 const categoryRoutes = require('./category.routes');
 const siteRoutes = require('../site/site.routes');
 const authRoutes = require('./auth.routes');
+const excludedAppRoutes = require('../keywords-blocking-excluded-app/excluded-app.routes');
 
 // Mount routes
 router.use('/', deviceRoutes);
@@ -22,6 +23,7 @@ router.use('/keywords', keywordRoutes);
 router.use('/sites', siteRoutes);
 router.use('/admin/whitelist', whitelistRoutes);
 router.use('/auth', authRoutes);
+router.use('/excluded-apps', excludedAppRoutes);
 
 // Health check endpoint
 router.get('/health', (req, res) => {
