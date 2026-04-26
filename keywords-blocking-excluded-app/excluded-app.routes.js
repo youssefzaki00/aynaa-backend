@@ -90,7 +90,7 @@ router.post("/", protect, adminOnly, createExcludedAppController);
  *       401: { description: "Unauthorized" }
  *       403: { description: "Admin access required" }
  */
-router.get("/", protect, adminOnly, getExcludedAppsController);
+router.get("/", protect, getExcludedAppsController);
 
 /**
  * @swagger
