@@ -46,7 +46,7 @@ const upload = multer({ dest: "uploads/" });
  *                   items: { $ref: '#/components/schemas/Site' }
  *       401: { description: "Unauthorized" }
  */
-router.get("/", protect, getSites);
+router.get("/", getSites);
 
 /**
  * @swagger

@@ -263,7 +263,7 @@ if (process.env.NODE_ENV === "development") {
 }
 
 // Apply global rate limiter
-app.use(globalLimiter);
+// app.use(globalLimiter);
 
 // API Routes
 app.use("/api/v1", routes);
