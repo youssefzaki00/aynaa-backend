@@ -5,6 +5,9 @@
 
 const { DEFAULT_PAGINATION } = require('../config/constant');
 
+/** TEMP/testing: skip limit/skip on all list endpoints — set false to restore pagination */
+const PAGINATION_DISABLED = true;
+
 /**
  * Parse and validate pagination parameters from query
  * @param {Object} query - Express request query object
@@ -63,24 +66,25 @@ const executePaginatedQuery = async ({
 }) => {
   const { page, limit, skip } = parsePaginationParams(query);
 
-  // Build query
-  let dbQuery = model.find(filter).select(select).sort(sort).limit(limit).skip(skip);
+  let dbQuery = model.find(filter).select(select).sort(sort);
+  if (!PAGINATION_DISABLED) {
+    dbQuery = dbQuery.limit(limit).skip(skip);
+  }
 
-  // Add population if specified
   if (populate) {
     dbQuery = dbQuery.populate(populate);
   }
 
-  // Execute query and count in parallel
   const [items, total] = await Promise.all([
     dbQuery.exec(),
     model.countDocuments(filter),
   ]);
 
-  return {
-    items,
-    pagination: buildPaginationResponse(total, page, limit),
-  };
+  const pagination = PAGINATION_DISABLED
+    ? buildPaginationResponse(total, 1, Math.max(total, 1))
+    : buildPaginationResponse(total, page, limit);
+
+  return { items, pagination };
 };
 
 module.exports = {
