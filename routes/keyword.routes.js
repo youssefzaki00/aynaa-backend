@@ -14,7 +14,7 @@ const adminOnly = require("../middleware/adminOnly");
  * @swagger
  * /keywords:
  *   post:
- *     tags: [Keywords]
+ *     tags: [Keywords, Dashboard]
  *     summary: Create keyword
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -53,7 +53,7 @@ router.post("/", protect, adminOnly, createKeyword);
  * @swagger
  * /keywords:
  *   get:
- *     tags: [Keywords]
+ *     tags: [Keywords, Dashboard]
  *     summary: Get keywords
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -108,7 +108,7 @@ router.get("/", protect, getKeywords);
  * @swagger
  * /keywords/{id}:
  *   patch:
- *     tags: [Keywords]
+ *     tags: [Keywords, Dashboard]
  *     summary: Update keyword
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -151,7 +151,7 @@ router.patch("/:id", protect, adminOnly, updateKeyword);
  * @swagger
  * /keywords/{id}:
  *   delete:
- *     tags: [Keywords]
+ *     tags: [Keywords, Dashboard]
  *     summary: Delete keyword
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -188,7 +188,7 @@ router.delete("/:id", protect, adminOnly, deleteKeyword);
  * @swagger
  * /keywords/{id}/toggle:
  *   patch:
- *     tags: [Keywords]
+ *     tags: [Keywords, Dashboard]
  *     summary: Toggle keyword status
  *     security: [{ bearerAuth: [] }]
  *     parameters:

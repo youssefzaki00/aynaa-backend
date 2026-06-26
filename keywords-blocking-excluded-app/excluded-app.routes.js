@@ -13,7 +13,7 @@ const adminOnly = require("../middleware/adminOnly");
  * @swagger
  * /excluded-apps:
  *   post:
- *     tags: [Excluded Apps]
+ *     tags: [Excluded Apps, Dashboard]
  *     summary: Create excluded app
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -57,7 +57,7 @@ router.post("/", protect, adminOnly, createExcludedAppController);
  * @swagger
  * /excluded-apps:
  *   get:
- *     tags: [Excluded Apps]
+ *     tags: [Excluded Apps, Dashboard]
  *     summary: Get excluded apps
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -96,7 +96,7 @@ router.get("/", protect, getExcludedAppsController);
  * @swagger
  * /excluded-apps/{id}:
  *   patch:
- *     tags: [Excluded Apps]
+ *     tags: [Excluded Apps, Dashboard]
  *     summary: Update excluded app
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -147,7 +147,7 @@ router.patch("/:id", protect, adminOnly, updateExcludedAppController);
  * @swagger
  * /excluded-apps/{id}:
  *   delete:
- *     tags: [Excluded Apps]
+ *     tags: [Excluded Apps, Dashboard]
  *     summary: Delete excluded app
  *     security: [{ bearerAuth: [] }]
  *     parameters:

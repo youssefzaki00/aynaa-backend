@@ -79,7 +79,7 @@ router.post("/user/login", loginUser);
  * @swagger
  * /auth/admin/login:
  *   post:
- *     tags: [Authentication]
+ *     tags: [Authentication, Dashboard]
  *     summary: Login admin
  *     requestBody:
  *       required: true
