@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "create-admin": "node scripts/create-admin.js",
-    "test": "cross-env NODE_ENV=test jest --runInBand --watch"
+    "test": "npx dotenv -e .env.test -- cross-env NODE_ENV=test jest --runInBand --watch"
   },
   "keywords": [
     "parental-control",
