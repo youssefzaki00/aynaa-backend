@@ -12,6 +12,10 @@ const categoryRoutes = require('./category.routes');
 const siteRoutes = require('../site/site.routes');
 const authRoutes = require('./auth.routes');
 const excludedAppRoutes = require('../keywords-blocking-excluded-app/excluded-app.routes');
+const appsRoutes = require('./app.routes');
+const requestsRoutes = require('./request.routes');
+const { protect } = require('../middleware/auth');
+const { deleteRequestController } = require('../controllers/requestController');
 
 // Mount routes
 router.use('/', deviceRoutes);
@@ -24,6 +28,9 @@ router.use('/sites', siteRoutes);
 router.use('/admin/whitelist', whitelistRoutes);
 router.use('/auth', authRoutes);
 router.use('/excluded-apps', excludedAppRoutes);
+router.use('/apps', appsRoutes);
+router.use('/requests', requestsRoutes);
+router.delete('/request/:id', protect, deleteRequestController);
 
 // Health check endpoint
 router.get('/health', (req, res) => {

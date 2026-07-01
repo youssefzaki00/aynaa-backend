@@ -16,7 +16,7 @@ const upload = multer({ dest: "uploads/" });
  * @swagger
  * /sites:
  *   get:
- *     tags: [Sites]
+ *     tags: [Sites, Dashboard]
  *     summary: Get sites
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -52,7 +52,7 @@ router.get("/", getSites);
  * @swagger
  * /sites:
  *   post:
- *     tags: [Sites]
+ *     tags: [Sites, Dashboard]
  *     summary: Create site
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -89,7 +89,7 @@ router.post("/", protect, adminOnly, createSite);
  * @swagger
  * /sites/{id}:
  *   patch:
- *     tags: [Sites]
+ *     tags: [Sites, Dashboard]
  *     summary: Update site
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -131,7 +131,7 @@ router.patch("/:id", protect, adminOnly, updateSite);
  * @swagger
  * /sites/{id}:
  *   delete:
- *     tags: [Sites]
+ *     tags: [Sites, Dashboard]
  *     summary: Delete site
  *     security: [{ bearerAuth: [] }]
  *     parameters:
@@ -160,7 +160,7 @@ router.delete("/:id", protect, adminOnly, deleteSite);
  * @swagger
  * /sites/upload:
  *   post:
- *     tags: [Sites]
+ *     tags: [Sites, Dashboard]
  *     summary: Upload a text file of blocked sites for bulk import
  *     description: |
  *       Upload a plain text file containing host entries in the format `0.0.0.0 example.com`.
