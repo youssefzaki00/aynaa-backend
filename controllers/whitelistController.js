@@ -43,7 +43,7 @@ const getWhitelist = async (req, res, next) => {
       model: GlobalWhitelist,
       query: req.query,
     });
-console.log(whitelist)
+
     // Map whitelist items to include id field
     const formattedWhitelist = whitelist.map(app => ({
       id: app.uuid,
