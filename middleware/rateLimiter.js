@@ -1,6 +1,6 @@
 const rateLimit = require("express-rate-limit");
 const { RedisStore } = require("rate-limit-redis");
-const { getRedisClient } = require("../config/redis");
+const { sendRedisCommand } = require("../config/redis");
 
 // Absurdly high caps — effectively unlimited for normal use (per IP per window)
 const HUGE_MAX = 9999999999999;
@@ -15,7 +15,7 @@ const createRedisStore = (prefix) => {
 
   return new RedisStore({
     prefix,
-    sendCommand: (...args) => getRedisClient().sendCommand(args),
+    sendCommand: (...args) => sendRedisCommand(...args),
   });
 };
 
