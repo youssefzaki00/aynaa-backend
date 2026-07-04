@@ -3,10 +3,7 @@ const Category = require("../models/Category");
 const { executePaginatedQuery } = require("../utils/pagination");
 const { sendSuccess, sendError } = require("../utils/response");
 const { validateRequiredFields } = require("../utils/validation");
-const { buildCacheKey, getOrSetCache, invalidateNamespace } = require("../utils/cache");
 const { seedSitesFileToDB } = require("./site.service");
-
-const SITES_CACHE_NS = "sites";
 
 const createSite = async (req, res, next) => {
   try {
@@ -41,8 +38,6 @@ const createSite = async (req, res, next) => {
       isBlocked: isBlocked !== undefined ? Boolean(isBlocked) : true,
     });
 
-    void invalidateNamespace(SITES_CACHE_NS);
-
     return sendSuccess(res, 201, "Site created successfully", { site });
   } catch (error) {
     if (error.code === 11000) {
@@ -55,119 +50,63 @@ const createSite = async (req, res, next) => {
 const getSites = async (req, res, next) => {
   try {
     const { categoryId, isActive, isBlocked, lastSync } = req.query;
-    const isAdmin = Boolean(req.user && req.user.role === "admin");
+    const filter = { deletedAt: null };
 
-    const fetchSites = async () => {
-      const filter = { deletedAt: null };
+    if (isActive !== undefined) {
+      filter.isActive = isActive === "true" || isActive === true;
+    }
 
-      if (isActive !== undefined) {
-        filter.isActive = isActive === "true" || isActive === true;
-      }
+    if (isBlocked !== undefined) {
+      filter.isBlocked = isBlocked === "true" || isBlocked === true;
+    }
 
-      if (isBlocked !== undefined) {
-        filter.isBlocked = isBlocked === "true" || isBlocked === true;
-      }
+    if (!req.user || req.user.role !== "admin") {
+      filter.isActive = true;
+    }
 
-      if (!req.user || req.user.role !== "admin") {
-        filter.isActive = true;
-      }
-
-      if (categoryId) {
-        filter.category = categoryId;
-      }
-
-      const { items: sites, pagination } = await executePaginatedQuery({
-        model: Site,
-        filter,
-        query: req.query,
-        populate: {
-          path: "category",
-          select: "_id name displayName",
-        },
-      });
-
-      const transformedSites = sites.map((site) => {
-        const siteObj = site.toJSON();
-        if (siteObj.category) {
-          siteObj.category.id = siteObj.category._id;
-          delete siteObj.category._id;
-        }
-        return siteObj;
-      });
-
-      return {
-        sites: transformedSites,
-        deletedSiteIds: [],
-        pagination,
-      };
-    };
+    if (categoryId) {
+      filter.category = categoryId;
+    }
 
     if (lastSync) {
       const since = new Date(lastSync);
-      const filter = { deletedAt: null };
-
-      if (isActive !== undefined) {
-        filter.isActive = isActive === "true" || isActive === true;
-      }
-
-      if (isBlocked !== undefined) {
-        filter.isBlocked = isBlocked === "true" || isBlocked === true;
-      }
-
-      if (!req.user || req.user.role !== "admin") {
-        filter.isActive = true;
-      }
-
-      if (categoryId) {
-        filter.category = categoryId;
-      }
-
       filter.$or = [
         { createdAt: { $gt: since } },
         { updatedAt: { $gt: since } },
       ];
-
-      const { items: sites, pagination } = await executePaginatedQuery({
-        model: Site,
-        filter,
-        query: req.query,
-        populate: {
-          path: "category",
-          select: "_id name displayName",
-        },
-      });
-
-      const transformedSites = sites.map((site) => {
-        const siteObj = site.toJSON();
-        if (siteObj.category) {
-          siteObj.category.id = siteObj.category._id;
-          delete siteObj.category._id;
-        }
-        return siteObj;
-      });
-
-      const tombstones = await Site.find({ deletedAt: { $gt: since } }).select("_id");
-
-      return sendSuccess(res, 200, "Sites retrieved successfully", {
-        sites: transformedSites,
-        deletedSiteIds: tombstones.map((d) => d._id),
-        pagination,
-      });
     }
 
-    const cacheKey = buildCacheKey(SITES_CACHE_NS, {
-      categoryId,
-      isActive,
-      isBlocked,
-      isAdmin,
-      page: req.query.page,
-      limit: req.query.limit,
-      search: req.query.search,
+    const { items: sites, pagination } = await executePaginatedQuery({
+      model: Site,
+      filter,
+      query: req.query,
+      populate: {
+        path: "category",
+        select: "_id name displayName",
+      },
     });
 
-    const { data } = await getOrSetCache(cacheKey, fetchSites);
+    const transformedSites = sites.map((site) => {
+      const siteObj = site.toJSON();
+      if (siteObj.category) {
+        siteObj.category.id = siteObj.category._id;
+        delete siteObj.category._id;
+      }
+      return siteObj;
+    });
 
-    sendSuccess(res, 200, "Sites retrieved successfully", data);
+    let deletedSiteIds = [];
+    if (lastSync) {
+      const since = new Date(lastSync);
+      const tombstones = await Site.find({ deletedAt: { $gt: since } }).select("_id");
+      deletedSiteIds = tombstones.map((d) => d._id);
+    }
+
+    sendSuccess(res, 200, "Sites retrieved successfully", {
+      sites: transformedSites,
+      deletedSiteIds,
+      pagination,
+    });
   } catch (error) {
     return next(error);
   }
@@ -192,8 +131,6 @@ const updateSite = async (req, res, next) => {
 
     await site.save();
 
-    void invalidateNamespace(SITES_CACHE_NS);
-
     return sendSuccess(res, 200, "Site updated successfully", { site });
   } catch (error) {
     if (error.code === 11000) {
@@ -213,8 +150,6 @@ const deleteSite = async (req, res, next) => {
       { new: true },
     );
 
-    void invalidateNamespace(SITES_CACHE_NS);
-
     return sendSuccess(res, 200, "Site deleted successfully", {
       id: site ? site._id.toString() : null,
     });
@@ -226,8 +161,6 @@ const deleteSite = async (req, res, next) => {
 const uploadSitesFile = async (req, res, next) => {
   try {
     await seedSitesFileToDB(req.file.path, req.body.categoryId);
-
-    void invalidateNamespace(SITES_CACHE_NS);
 
     return sendSuccess(res, 200, "Sites is seeded successfully");
   } catch (error) {

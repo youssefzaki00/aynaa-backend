@@ -1,6 +1,5 @@
 const { sendSuccess, sendError } = require('../utils/response');
 const { validateRequiredFields } = require('../utils/validation');
-const { buildCacheKey, getOrSetCache, invalidateNamespace } = require('../utils/cache');
 const {
   createExcludedApp,
   getExcludedApps,
@@ -8,8 +7,6 @@ const {
   deleteExcludedApp,
   getExcludedAppById,
 } = require('./excluded-app.service');
-
-const EXCLUDED_APPS_CACHE_NS = 'excluded-apps';
 
 /**
  * Create a new excluded app
@@ -33,8 +30,6 @@ const createExcludedAppController = async (req, res, next) => {
 
     const excludedApp = await createExcludedApp(packageName);
 
-    void invalidateNamespace(EXCLUDED_APPS_CACHE_NS);
-
     sendSuccess(res, 201, 'Excluded app created successfully', {
       excludedApp: {
         id: excludedApp.id,
@@ -57,36 +52,18 @@ const getExcludedAppsController = async (req, res, next) => {
   try {
     const { lastSync } = req.query;
 
-    if (lastSync) {
-      const { excludedApps, deletedIds } = await getExcludedApps(lastSync);
-      return sendSuccess(res, 200, 'Excluded apps retrieved successfully', {
-        excludedApps: excludedApps.map((app) => ({
-          id: app.id,
-          packageName: app.packageName,
-          isActive: app.isActive,
-          createdAt: app.createdAt,
-          updatedAt: app.updatedAt,
-        })),
-        deletedIds,
-      });
-    }
+    const { excludedApps, deletedIds } = await getExcludedApps(lastSync);
 
-    const cacheKey = buildCacheKey(EXCLUDED_APPS_CACHE_NS);
-    const { data } = await getOrSetCache(cacheKey, async () => {
-      const { excludedApps, deletedIds } = await getExcludedApps();
-      return {
-        excludedApps: excludedApps.map((app) => ({
-          id: app.id,
-          packageName: app.packageName,
-          isActive: app.isActive,
-          createdAt: app.createdAt,
-          updatedAt: app.updatedAt,
-        })),
-        deletedIds,
-      };
+    sendSuccess(res, 200, 'Excluded apps retrieved successfully', {
+      excludedApps: excludedApps.map((app) => ({
+        id: app.id,
+        packageName: app.packageName,
+        isActive: app.isActive,
+        createdAt: app.createdAt,
+        updatedAt: app.updatedAt,
+      })),
+      deletedIds,
     });
-
-    sendSuccess(res, 200, 'Excluded apps retrieved successfully', data);
   } catch (error) {
     next(error);
   }
@@ -128,8 +105,6 @@ const updateExcludedAppController = async (req, res, next) => {
 
     const updatedApp = await updateExcludedApp(id, updates);
 
-    void invalidateNamespace(EXCLUDED_APPS_CACHE_NS);
-
     sendSuccess(res, 200, 'Excluded app updated successfully', {
       excludedApp: {
         id: updatedApp.id,
@@ -158,8 +133,6 @@ const deleteExcludedAppController = async (req, res, next) => {
     }
 
     const deletedApp = await deleteExcludedApp(id);
-
-    void invalidateNamespace(EXCLUDED_APPS_CACHE_NS);
 
     sendSuccess(res, 200, 'Excluded app deleted successfully', {
       deletedExcludedApp: {
