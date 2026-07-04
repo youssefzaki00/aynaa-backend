@@ -32,6 +32,10 @@ const upload = multer({ dest: "uploads/" });
  *         name: search
  *         schema: { type: string }
  *         description: "Search term for site name or URL"
+ *       - in: query
+ *         name: lastSync
+ *         schema: { type: string, format: date-time }
+ *         description: "Get sites created or updated after timestamp"
  *     responses:
  *       200:
  *         description: Sites retrieved
@@ -42,8 +46,17 @@ const upload = multer({ dest: "uploads/" });
  *               properties:
  *                 success: { type: boolean, example: true }
  *                 data:
- *                   type: array
- *                   items: { $ref: '#/components/schemas/Site' }
+ *                   type: object
+ *                   properties:
+ *                     sites:
+ *                       type: array
+ *                       items: { $ref: '#/components/schemas/Site' }
+ *                     deletedSiteIds:
+ *                       type: array
+ *                       description: "IDs of sites soft-deleted since lastSync (only when lastSync is provided)"
+ *                       items: { type: string }
+ *                     pagination:
+ *                       type: object
  *       401: { description: "Unauthorized" }
  */
 router.get("/", getSites);

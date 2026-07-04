@@ -52,16 +52,17 @@ const getExcludedAppsController = async (req, res, next) => {
   try {
     const { lastSync } = req.query;
 
-    const excludedApps = await getExcludedApps(lastSync);
+    const { excludedApps, deletedIds } = await getExcludedApps(lastSync);
 
     sendSuccess(res, 200, 'Excluded apps retrieved successfully', {
-      excludedApps: excludedApps.map(app => ({
+      excludedApps: excludedApps.map((app) => ({
         id: app.id,
         packageName: app.packageName,
         isActive: app.isActive,
         createdAt: app.createdAt,
         updatedAt: app.updatedAt,
       })),
+      deletedIds,
     });
   } catch (error) {
     next(error);

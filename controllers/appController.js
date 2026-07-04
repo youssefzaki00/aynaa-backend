@@ -48,7 +48,7 @@ const createAppController = async (req, res, next) => {
 const getAppsController = async (req, res, next) => {
   try {
     const { lastSync } = req.query;
-    const apps = await getApps(lastSync);
+    const { apps, deletedIds } = await getApps(lastSync);
 
     return sendSuccess(res, 200, 'Apps retrieved successfully', {
       apps: apps.map((app) => ({
@@ -59,6 +59,7 @@ const getAppsController = async (req, res, next) => {
         createdAt: app.createdAt,
         updatedAt: app.updatedAt,
       })),
+      deletedIds,
     });
   } catch (error) {
     return next(error);

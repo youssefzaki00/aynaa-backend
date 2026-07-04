@@ -19,6 +19,10 @@ const keywordSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -35,5 +39,8 @@ const keywordSchema = new mongoose.Schema(
 
 // Index for faster filtering
 keywordSchema.index({ isEnabled: 1, category: 1 });
+keywordSchema.index({ updatedAt: 1 });
+keywordSchema.index({ createdAt: 1 });
+keywordSchema.index({ deletedAt: 1 });
 
 module.exports = mongoose.model('Keyword', keywordSchema);

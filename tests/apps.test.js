@@ -83,7 +83,52 @@ describe("Apps API", () => {
         expect(res.body.success).toBe(true);
         expect(Array.isArray(res.body.data.apps)).toBe(true);
         expect(res.body.data.apps.length).toBe(1);
+        expect(Array.isArray(res.body.data.deletedIds)).toBe(true);
       });
+    });
+  });
+
+  describe("soft delete and lastSync tombstones", () => {
+    let appId;
+
+    beforeAll(async () => {
+      await AppModel.deleteMany({});
+      const created = await AppModel.create({ packageName: "com.tombstone.test" });
+      appId = created._id.toString();
+    });
+
+    test("should exclude soft-deleted app from full list", async () => {
+      await request(app)
+        .delete(`/api/v1/apps/${appId}`)
+        .auth(adminToken, { type: "bearer" });
+
+      const res = await request(app)
+        .get("/api/v1/apps")
+        .auth(userToken, { type: "bearer" });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.apps).toHaveLength(0);
+    });
+
+    test("should return deletedIds in lastSync response after delete", async () => {
+      await AppModel.deleteMany({});
+      const created = await AppModel.create({ packageName: "com.sync.delete" });
+      const lastSync = new Date().toISOString();
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      await request(app)
+        .delete(`/api/v1/apps/${created._id}`)
+        .auth(adminToken, { type: "bearer" });
+
+      const res = await request(app)
+        .get("/api/v1/apps")
+        .auth(userToken, { type: "bearer" })
+        .query({ lastSync });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.deletedIds.map(String)).toContain(created._id.toString());
+      expect(res.body.data.apps).toHaveLength(0);
     });
   });
 });

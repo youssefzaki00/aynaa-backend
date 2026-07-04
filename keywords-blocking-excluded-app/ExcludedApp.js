@@ -12,6 +12,10 @@ const excludedAppSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -28,5 +32,8 @@ const excludedAppSchema = new mongoose.Schema(
 
 // Index for faster queries
 excludedAppSchema.index({ isActive: 1 });
+excludedAppSchema.index({ updatedAt: 1 });
+excludedAppSchema.index({ createdAt: 1 });
+excludedAppSchema.index({ deletedAt: 1 });
 
 module.exports = mongoose.model('ExcludedApp', excludedAppSchema);

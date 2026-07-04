@@ -1,4 +1,3 @@
-const { DEFAULT_PAGINATION } = require("../config/constant");
 const Site = require("./Site");
 const Category = require("../models/Category");
 const { executePaginatedQuery } = require("../utils/pagination");
@@ -19,7 +18,6 @@ const createSite = async (req, res, next) => {
       );
     }
 
-    // Verify category exists
     const category = await Category.findOne({ _id: categoryId });
     if (!category) {
       return sendError(res, 404, "Category not found");
@@ -51,30 +49,31 @@ const createSite = async (req, res, next) => {
 
 const getSites = async (req, res, next) => {
   try {
-    const { categoryId, isActive, isBlocked } = req.query;
-    const filter = {};
+    const { categoryId, isActive, isBlocked, lastSync } = req.query;
+    const filter = { deletedAt: null };
 
     if (isActive !== undefined) {
       filter.isActive = isActive === "true" || isActive === true;
     }
 
     if (isBlocked !== undefined) {
-      filter.isBlocked = isActive === "true" || isBlocked === true;
+      filter.isBlocked = isBlocked === "true" || isBlocked === true;
     }
 
     if (!req.user || req.user.role !== "admin") {
-      // user access: only active sites
       filter.isActive = true;
     }
 
     if (categoryId) {
-      // Verify category exists
-      const category = await Category.findOne({ _id: categoryId });
-      if (!category) {
-        return sendError(res, 404, "Category not found");
-      }
+      filter.category = categoryId;
+    }
 
-      filter.categoryId = category._id;
+    if (lastSync) {
+      const since = new Date(lastSync);
+      filter.$or = [
+        { createdAt: { $gt: since } },
+        { updatedAt: { $gt: since } },
+      ];
     }
 
     const { items: sites, pagination } = await executePaginatedQuery({
@@ -87,8 +86,25 @@ const getSites = async (req, res, next) => {
       },
     });
 
+    const transformedSites = sites.map((site) => {
+      const siteObj = site.toJSON();
+      if (siteObj.category) {
+        siteObj.category.id = siteObj.category._id;
+        delete siteObj.category._id;
+      }
+      return siteObj;
+    });
+
+    let deletedSiteIds = [];
+    if (lastSync) {
+      const since = new Date(lastSync);
+      const tombstones = await Site.find({ deletedAt: { $gt: since } }).select("_id");
+      deletedSiteIds = tombstones.map((d) => d._id);
+    }
+
     sendSuccess(res, 200, "Sites retrieved successfully", {
-      sites,
+      sites: transformedSites,
+      deletedSiteIds,
       pagination,
     });
   } catch (error) {
@@ -101,7 +117,7 @@ const updateSite = async (req, res, next) => {
     const { id } = req.params;
     const { url, isActive } = req.body;
 
-    const site = await Site.findById(id);
+    const site = await Site.findOne({ _id: id, deletedAt: null });
     if (!site) {
       return sendError(res, 404, "Site not found");
     }
@@ -128,34 +144,34 @@ const deleteSite = async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const site = await Site.findById(id);
-    if (!site) {
-      return sendError(res, 404, "Site not found");
-    }
+    const site = await Site.findOneAndUpdate(
+      { _id: id, deletedAt: null },
+      { deletedAt: new Date() },
+      { new: true },
+    );
 
-    await Site.findByIdAndDelete(id);
-
-    return sendSuccess(res, 200, "Site deleted successfully", { id });
+    return sendSuccess(res, 200, "Site deleted successfully", {
+      id: site ? site._id.toString() : null,
+    });
   } catch (error) {
     return next(error);
   }
 };
 
-const uploadSitesFile = async (req, res, next)=>{
+const uploadSitesFile = async (req, res, next) => {
   try {
-    await seedSitesFileToDB(req.file.path, req.body.categoryId)
-  
+    await seedSitesFileToDB(req.file.path, req.body.categoryId);
+
     return sendSuccess(res, 200, "Sites is seeded successfully");
-    
   } catch (error) {
-    next(error)
+    next(error);
   }
-}
+};
 
 module.exports = {
   createSite,
   getSites,
   updateSite,
   deleteSite,
-  uploadSitesFile
+  uploadSitesFile,
 };

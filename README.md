@@ -68,8 +68,19 @@ cp .env.example .env
 PORT=5000
 NODE_ENV=development
 
+# Clustering (optional) — the app uses Node's built-in `cluster` module to
+# fork one worker per CPU core. Defaults to enabled. Set to "false" to run
+# as a single process (e.g. if you manage multi-core scaling with PM2's
+# own cluster mode instead — see the Deployment section below).
+ENABLE_CLUSTER=true
+
 # MongoDB
 MONGODB_URI=your-mongodb-connection-string
+# MONGO_MAX_POOL_SIZE / MONGO_MIN_POOL_SIZE are the TOTAL connection budget
+# for the whole server. When clustering is enabled, each worker automatically
+# divides these by the number of CPU cores so the total stays roughly the same.
+# MONGO_MAX_POOL_SIZE=200
+# MONGO_MIN_POOL_SIZE=10
 
 # API Keys
 API_SECRET_KEY=your-client-api-key
@@ -353,6 +364,22 @@ Content-Type: application/json
    ```
 3. Set up a reverse proxy (Nginx/Apache)
 4. Enable HTTPS
+
+### ⚡ Multi-core Scaling (Clustering)
+
+The app forks one worker process per CPU core automatically via Node's built-in
+`cluster` module, so it uses all available cores on the machine out of the box —
+no extra setup needed.
+
+**Important:** don't combine this with PM2's own cluster mode, or you'll end up
+multiplying workers on top of workers (e.g. 4 cores × PM2 `-i max` = 16
+processes, each opening its own MongoDB pool). Pick one of the following:
+
+- **Recommended:** keep PM2 in fork mode (as shown above, `pm2 start server.js`)
+  and let the app's built-in cluster module handle multi-core usage.
+- **Alternative:** if you'd rather have PM2 manage the workers, set
+  `ENABLE_CLUSTER=false` in your environment and use PM2 cluster mode instead
+  (`pm2 start server.js -i max`).
 
 ## 📝 License
 

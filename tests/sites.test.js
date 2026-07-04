@@ -98,7 +98,7 @@ describe("Sites API", () => {
     expect(res.body.data.site.isActive).toBe(false);
   });
 
-  test("DELETE /api/v1/sites/:id (admin) removes site", async () => {
+  test("DELETE /api/v1/sites/:id (admin) soft-deletes site", async () => {
     const site = await Site.create({
       url: "https://delete.com",
       category: categoryId,
@@ -112,7 +112,56 @@ describe("Sites API", () => {
     expect(res.body.data.id).toBe(site._id.toString());
 
     const removed = await Site.findById(site._id);
-    expect(removed).toBeNull();
+    expect(removed).not.toBeNull();
+    expect(removed.deletedAt).not.toBeNull();
+  });
+
+  describe("lastSync and soft delete tombstones", () => {
+    test("should return sites changed after lastSync", async () => {
+      const site = await Site.create({
+        url: "https://sync-test.com",
+        category: categoryId,
+      });
+      const lastSync = new Date().toISOString();
+
+      await request(app)
+        .patch(`/api/v1/sites/${site._id}`)
+        .auth(adminToken, { type: "bearer" })
+        .send({ url: "https://sync-updated.com" });
+
+      const res = await request(app)
+        .get("/api/v1/sites")
+        .auth(adminToken, { type: "bearer" })
+        .query({ lastSync });
+
+      expect(res.statusCode).toBe(200);
+      const urls = res.body.data.sites.map((s) => s.url);
+      expect(urls).toContain("https://sync-updated.com");
+      expect(Array.isArray(res.body.data.deletedSiteIds)).toBe(true);
+    });
+
+    test("should return deletedSiteIds after soft delete", async () => {
+      const site = await Site.create({
+        url: "https://tombstone.com",
+        category: categoryId,
+      });
+      const lastSync = new Date().toISOString();
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      await request(app)
+        .delete(`/api/v1/sites/${site._id}`)
+        .auth(adminToken, { type: "bearer" });
+
+      const res = await request(app)
+        .get("/api/v1/sites")
+        .auth(adminToken, { type: "bearer" })
+        .query({ lastSync });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.deletedSiteIds.map(String)).toContain(site._id.toString());
+      expect(res.body.data.sites.map((s) => s.id)).not.toContain(site._id.toString());
+    });
   });
 
   describe("POST /api/v1/sites/upload", () => {

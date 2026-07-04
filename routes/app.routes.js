@@ -154,6 +154,10 @@ const adminOnly = require('../middleware/adminOnly');
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/AppResponse'
+ *                     deletedIds:
+ *                       type: array
+ *                       description: "IDs of apps soft-deleted since lastSync (only when lastSync is provided)"
+ *                       items: { type: string }
  *       401:
  *         description: Unauthorized - missing or invalid JWT token
  *       500:

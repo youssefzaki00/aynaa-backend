@@ -92,6 +92,10 @@ router.post("/", protect, adminOnly, createKeyword);
  *                     keywords:
  *                       type: array
  *                       items: { $ref: '#/components/schemas/Keyword' }
+ *                     deletedKeywordIds:
+ *                       type: array
+ *                       description: "IDs of keywords deleted since lastSync (only when lastSync is provided)"
+ *                       items: { type: string }
  *                     pagination:
  *                       type: object
  *                       properties:
@@ -100,7 +104,6 @@ router.post("/", protect, adminOnly, createKeyword);
  *                         total: { type: integer }
  *                         pages: { type: integer }
  *       401: { description: "Unauthorized" }
- *       404: { description: "Category not found" }
  */
 router.get("/", protect, getKeywords);
 

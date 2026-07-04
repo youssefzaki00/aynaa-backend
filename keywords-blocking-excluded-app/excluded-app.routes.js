@@ -87,6 +87,10 @@ router.post("/", protect, adminOnly, createExcludedAppController);
  *                           isActive: { type: boolean }
  *                           createdAt: { type: string, format: date-time }
  *                           updatedAt: { type: string, format: date-time }
+ *                     deletedIds:
+ *                       type: array
+ *                       description: "IDs of excluded apps soft-deleted since lastSync (only when lastSync is provided)"
+ *                       items: { type: string }
  *       401: { description: "Unauthorized" }
  *       403: { description: "Admin access required" }
  */

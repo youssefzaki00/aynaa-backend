@@ -1,5 +1,8 @@
 require("dotenv").config();
 const path = require("path");
+const cluster = require("cluster");
+const os = require("os");
+const mongoose = require("mongoose");
 const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
@@ -291,25 +294,78 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // --- Start Server Logic (The Correct Way) ---
-if (require.main === module) {
+
+// شغل السيرفر في الـ Worker ده (سواء كان Worker جوه Cluster أو Process لوحده)
+function startWorker() {
   const PORT = process.env.PORT || 5000;
 
   // 1. استنى الداتا بيز تتصل الأول
   connectDB()
     .then(() => {
       // 2. لما تنجح، شغل السيرفر
-      app.listen(PORT, () => {
+      const server = app.listen(PORT, () => {
         console.log(
-          `🚀 Server running on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`
+          `🚀 [Worker ${process.pid}] Server running on port ${PORT} in ${process.env.NODE_ENV || "development"} mode`
         );
       });
+
+      // 3. اقفل السيرفر بأمان لو الـ Process اتقفل (Deploy/Restart/Crash)
+      const gracefulShutdown = (signal) => {
+        console.log(`🛑 [Worker ${process.pid}] Received ${signal}, shutting down gracefully...`);
+        server.close(() => {
+          mongoose
+            .connection.close(false)
+            .then(() => {
+              console.log(`✅ [Worker ${process.pid}] Closed remaining connections.`);
+              process.exit(0);
+            })
+            .catch(() => process.exit(1));
+        });
+
+        // متستناش للأبد — لو فيه اتصالات معلقة اقفل بالقوة بعد مهلة
+        setTimeout(() => {
+          console.error(`⚠️ [Worker ${process.pid}] Forcing shutdown after timeout.`);
+          process.exit(1);
+        }, 10000).unref();
+      };
+
+      process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+      process.on("SIGINT", () => gracefulShutdown("SIGINT"));
     })
     .catch((err) => {
-      // 3. لو فشلت، متقومش السيرفر واطبع ايرور
-      console.error("❌ Failed to connect to Database. Server not started.");
+      // لو فشلت، متقومش السيرفر واطبع ايرور
+      console.error(`❌ [Worker ${process.pid}] Failed to connect to Database. Server not started.`);
       console.error(err);
       process.exit(1);
     });
+}
+
+if (require.main === module) {
+  // الـ Node.js Cluster Module: بيفتح نسخة (Worker) من الأبلكيشن على كل Core
+  // عشان نستغل كل الأكواد المتاحة في المعالجة بدل ما نشتغل على Core واحد بس.
+  // ENABLE_CLUSTER=false بيرجعنا لـ Process واحد (مفيد لو بتستخدم PM2 Cluster Mode
+  // بدل الـ Cluster Module ده، أو لو عايز تفادي تعقيد الـ Multi-process في التطوير).
+  const ENABLE_CLUSTER = process.env.ENABLE_CLUSTER !== "false";
+  const numCPUs = os.cpus().length;
+
+  if (ENABLE_CLUSTER && numCPUs > 1 && cluster.isPrimary) {
+    console.log(`🧠 [Primary ${process.pid}] Starting ${numCPUs} workers (one per CPU core)...`);
+
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    // لو Worker مات (Crash) نفتح واحد بدل منه عشان نحافظ على عدد الـ Workers
+    cluster.on("exit", (worker, code, signal) => {
+      console.error(
+        `⚠️ [Primary ${process.pid}] Worker ${worker.process.pid} died (code: ${code}, signal: ${signal}). Restarting...`
+      );
+      cluster.fork();
+    });
+  } else {
+    // مفيش Cluster (متعطل، أو Core واحد بس، أو إحنا جوه Worker فعلاً) — شغل Process عادي
+    startWorker();
+  }
 }
 
 // Export App for Vercel or Testing

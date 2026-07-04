@@ -9,22 +9,26 @@ exports.createExcludedApp = async (packageName) => {
 };
 
 exports.getExcludedApps = async (lastSync) => {
-  const filter = {};
+  const filter = { deletedAt: null };
+  let deletedIds = [];
 
   if (lastSync) {
+    const since = new Date(lastSync);
     filter.$or = [
-      { createdAt: { $gt: new Date(lastSync) } },
-      { updatedAt: { $gt: new Date(lastSync) } }
+      { createdAt: { $gt: since } },
+      { updatedAt: { $gt: since } },
     ];
+    const tombstones = await ExcludedApp.find({ deletedAt: { $gt: since } }).select('_id');
+    deletedIds = tombstones.map((d) => d._id);
   }
 
   const excludedApps = await ExcludedApp.find(filter).sort({ createdAt: -1 });
-  return excludedApps;
+  return { excludedApps, deletedIds };
 };
 
 exports.updateExcludedApp = async (id, updates) => {
-  const excludedApp = await ExcludedApp.findByIdAndUpdate(
-    id,
+  const excludedApp = await ExcludedApp.findOneAndUpdate(
+    { _id: id, deletedAt: null },
     updates,
     { new: true, runValidators: true }
   );
@@ -32,11 +36,15 @@ exports.updateExcludedApp = async (id, updates) => {
 };
 
 exports.deleteExcludedApp = async (id) => {
-  const excludedApp = await ExcludedApp.findByIdAndDelete(id);
+  const excludedApp = await ExcludedApp.findOneAndUpdate(
+    { _id: id, deletedAt: null },
+    { deletedAt: new Date() },
+    { new: true }
+  );
   return excludedApp;
 };
 
 exports.getExcludedAppById = async (id) => {
-  const excludedApp = await ExcludedApp.findById(id);
+  const excludedApp = await ExcludedApp.findOne({ _id: id, deletedAt: null });
   return excludedApp;
 };

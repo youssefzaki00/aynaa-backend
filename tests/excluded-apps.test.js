@@ -64,6 +64,30 @@ describe("Excluded Apps API", () => {
       expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data.excludedApps)).toBe(true);
       expect(res.body.data.excludedApps.length).toBeGreaterThan(0);
+      expect(Array.isArray(res.body.data.deletedIds)).toBe(true);
+    });
+  });
+
+  describe("lastSync and soft delete tombstones", () => {
+    test("should return deletedIds after soft delete", async () => {
+      await ExcludedApp.deleteMany({});
+      const created = await ExcludedApp.create({ packageName: "com.sync.tombstone" });
+      const lastSync = new Date().toISOString();
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      await request(app)
+        .delete(`/api/v1/excluded-apps/${created._id}`)
+        .auth(adminToken, { type: "bearer" });
+
+      const res = await request(app)
+        .get("/api/v1/excluded-apps")
+        .auth(adminToken, { type: "bearer" })
+        .query({ lastSync });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.deletedIds.map(String)).toContain(created._id.toString());
+      expect(res.body.data.excludedApps).toHaveLength(0);
     });
   });
 

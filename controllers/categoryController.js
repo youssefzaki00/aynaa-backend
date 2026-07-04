@@ -75,7 +75,7 @@ const getCategoryById = async (req, res, next) => {
     }
 
     // Get keyword count for this category
-    const keywordCount = await Keyword.countDocuments({ category: category._id });
+    const keywordCount = await Keyword.countDocuments({ category: category._id, deletedAt: null });
 
     sendSuccess(res, 200, 'Category retrieved successfully', {
       category: {
@@ -133,7 +133,7 @@ const deleteCategory = async (req, res, next) => {
     }
 
     // Check if any keywords are using this category
-    const keywordCount = await Keyword.countDocuments({ category: category._id });
+    const keywordCount = await Keyword.countDocuments({ category: category._id, deletedAt: null });
     if (keywordCount > 0) {
       return sendError(
         res, 

@@ -19,6 +19,10 @@ const siteSchema = new mongoose.Schema(
       default: true,
       index: true,
     },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -32,5 +36,9 @@ const siteSchema = new mongoose.Schema(
     },
   },
 );
+
+siteSchema.index({ updatedAt: 1 });
+siteSchema.index({ createdAt: 1 });
+siteSchema.index({ deletedAt: 1 });
 
 module.exports = mongoose.model("Site", siteSchema);
