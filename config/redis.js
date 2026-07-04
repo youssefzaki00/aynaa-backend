@@ -68,4 +68,4 @@ const disconnectRedis = async () => {
   connectPromise = null;
 };
 
-module.exports = { connectRedis, getRedisClient, sendRedisCommand, disconnectRedis };
+module.exports = { connectRedis, getRedisClient, sendRedisCommand, disconnectRedis, ensureRedisClient };

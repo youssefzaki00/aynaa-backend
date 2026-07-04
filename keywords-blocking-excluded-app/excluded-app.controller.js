@@ -1,6 +1,6 @@
 const { sendSuccess, sendError } = require('../utils/response');
 const { validateRequiredFields } = require('../utils/validation');
-const { buildCacheKey, getCache, setCache, invalidateNamespace } = require('../utils/cache');
+const { buildCacheKey, getOrSetCache, invalidateNamespace } = require('../utils/cache');
 const {
   createExcludedApp,
   getExcludedApps,
@@ -57,32 +57,36 @@ const getExcludedAppsController = async (req, res, next) => {
   try {
     const { lastSync } = req.query;
 
-    if (!lastSync) {
-      const cacheKey = buildCacheKey(EXCLUDED_APPS_CACHE_NS);
-      const cached = await getCache(cacheKey);
-      if (cached) {
-        return sendSuccess(res, 200, 'Excluded apps retrieved successfully', cached);
-      }
+    if (lastSync) {
+      const { excludedApps, deletedIds } = await getExcludedApps(lastSync);
+      return sendSuccess(res, 200, 'Excluded apps retrieved successfully', {
+        excludedApps: excludedApps.map((app) => ({
+          id: app.id,
+          packageName: app.packageName,
+          isActive: app.isActive,
+          createdAt: app.createdAt,
+          updatedAt: app.updatedAt,
+        })),
+        deletedIds,
+      });
     }
 
-    const { excludedApps, deletedIds } = await getExcludedApps(lastSync);
+    const cacheKey = buildCacheKey(EXCLUDED_APPS_CACHE_NS);
+    const { data } = await getOrSetCache(cacheKey, async () => {
+      const { excludedApps, deletedIds } = await getExcludedApps();
+      return {
+        excludedApps: excludedApps.map((app) => ({
+          id: app.id,
+          packageName: app.packageName,
+          isActive: app.isActive,
+          createdAt: app.createdAt,
+          updatedAt: app.updatedAt,
+        })),
+        deletedIds,
+      };
+    });
 
-    const responseData = {
-      excludedApps: excludedApps.map((app) => ({
-        id: app.id,
-        packageName: app.packageName,
-        isActive: app.isActive,
-        createdAt: app.createdAt,
-        updatedAt: app.updatedAt,
-      })),
-      deletedIds,
-    };
-
-    if (!lastSync) {
-      void setCache(buildCacheKey(EXCLUDED_APPS_CACHE_NS), responseData);
-    }
-
-    sendSuccess(res, 200, 'Excluded apps retrieved successfully', responseData);
+    sendSuccess(res, 200, 'Excluded apps retrieved successfully', data);
   } catch (error) {
     next(error);
   }

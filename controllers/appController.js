@@ -1,6 +1,6 @@
 const { sendSuccess, sendError } = require('../utils/response');
 const { validateRequiredFields } = require('../utils/validation');
-const { buildCacheKey, getCache, setCache, invalidateNamespace } = require('../utils/cache');
+const { buildCacheKey, getOrSetCache, invalidateNamespace } = require('../utils/cache');
 const {
   createApp,
   getApps,
@@ -54,33 +54,38 @@ const getAppsController = async (req, res, next) => {
   try {
     const { lastSync } = req.query;
 
-    if (!lastSync) {
-      const cacheKey = buildCacheKey(APPS_CACHE_NS);
-      const cached = await getCache(cacheKey);
-      if (cached) {
-        return sendSuccess(res, 200, 'Apps retrieved successfully', cached);
-      }
+    if (lastSync) {
+      const { apps, deletedIds } = await getApps(lastSync);
+      return sendSuccess(res, 200, 'Apps retrieved successfully', {
+        apps: apps.map((app) => ({
+          id: app.id,
+          packageName: app.packageName,
+          isDeleted: app.isDeleted,
+          isActive: app.isActive,
+          createdAt: app.createdAt,
+          updatedAt: app.updatedAt,
+        })),
+        deletedIds,
+      });
     }
 
-    const { apps, deletedIds } = await getApps(lastSync);
+    const cacheKey = buildCacheKey(APPS_CACHE_NS);
+    const { data } = await getOrSetCache(cacheKey, async () => {
+      const { apps, deletedIds } = await getApps();
+      return {
+        apps: apps.map((app) => ({
+          id: app.id,
+          packageName: app.packageName,
+          isDeleted: app.isDeleted,
+          isActive: app.isActive,
+          createdAt: app.createdAt,
+          updatedAt: app.updatedAt,
+        })),
+        deletedIds,
+      };
+    });
 
-    const responseData = {
-      apps: apps.map((app) => ({
-        id: app.id,
-        packageName: app.packageName,
-        isDeleted: app.isDeleted,
-        isActive: app.isActive,
-        createdAt: app.createdAt,
-        updatedAt: app.updatedAt,
-      })),
-      deletedIds,
-    };
-
-    if (!lastSync) {
-      void setCache(buildCacheKey(APPS_CACHE_NS), responseData);
-    }
-
-    return sendSuccess(res, 200, 'Apps retrieved successfully', responseData);
+    return sendSuccess(res, 200, 'Apps retrieved successfully', data);
   } catch (error) {
     return next(error);
   }

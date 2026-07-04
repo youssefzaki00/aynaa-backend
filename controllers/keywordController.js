@@ -3,7 +3,7 @@ const Category = require('../models/Category');
 const { sendSuccess, sendError } = require('../utils/response');
 const { executePaginatedQuery } = require('../utils/pagination');
 const { normalizeWord, validateRequiredFields } = require('../utils/validation');
-const { buildCacheKey, getCache, setCache, invalidateNamespace } = require('../utils/cache');
+const { buildCacheKey, getOrSetCache, invalidateNamespace } = require('../utils/cache');
 
 const KEYWORDS_CACHE_NS = 'keywords';
 
@@ -67,78 +67,94 @@ const getKeywords = async (req, res, next) => {
   try {
     const { categoryId, isEnabled, lastSync } = req.query;
 
-    if (!lastSync) {
-      const cacheKey = buildCacheKey(KEYWORDS_CACHE_NS, {
-        categoryId: categoryId || '',
-        isEnabled: isEnabled ?? '',
-        page: req.query.page || '',
-        limit: req.query.limit || '',
-      });
-      const cached = await getCache(cacheKey);
-      if (cached) {
-        return sendSuccess(res, 200, 'Keywords retrieved successfully', cached);
+    const fetchKeywords = async () => {
+      const filter = { deletedAt: null };
+
+      if (categoryId) {
+        filter.category = categoryId;
       }
-    }
 
-    const filter = { deletedAt: null };
+      if (isEnabled !== undefined) filter.isEnabled = isEnabled === 'true';
 
-    if (categoryId) {
-      filter.category = categoryId;
-    }
+      const { items: keywords, pagination } = await executePaginatedQuery({
+        model: Keyword,
+        filter,
+        query: req.query,
+        populate: {
+          path: 'category',
+          select: '_id name displayName',
+        },
+      });
 
-    if (isEnabled !== undefined) filter.isEnabled = isEnabled === 'true';
+      const transformedKeywords = keywords.map((keyword) => {
+        const keywordObj = keyword.toJSON();
+        if (keywordObj.category) {
+          keywordObj.category.id = keywordObj.category._id;
+          delete keywordObj.category._id;
+        }
+        return keywordObj;
+      });
+
+      return {
+        keywords: transformedKeywords,
+        deletedKeywordIds: [],
+        pagination,
+      };
+    };
 
     if (lastSync) {
       const since = new Date(lastSync);
+      const filter = { deletedAt: null };
+
+      if (categoryId) {
+        filter.category = categoryId;
+      }
+
+      if (isEnabled !== undefined) filter.isEnabled = isEnabled === 'true';
+
       filter.$or = [
         { createdAt: { $gt: since } },
         { updatedAt: { $gt: since } },
       ];
-    }
 
-    const { items: keywords, pagination } = await executePaginatedQuery({
-      model: Keyword,
-      filter,
-      query: req.query,
-      populate: {
-        path: 'category',
-        select: '_id name displayName',
-      },
-    });
-
-    const transformedKeywords = keywords.map((keyword) => {
-      const keywordObj = keyword.toJSON();
-      if (keywordObj.category) {
-        keywordObj.category.id = keywordObj.category._id;
-        delete keywordObj.category._id;
-      }
-      return keywordObj;
-    });
-
-    let deletedKeywordIds = [];
-    if (lastSync) {
-      const since = new Date(lastSync);
-      const tombstones = await Keyword.find({ deletedAt: { $gt: since } }).select('_id');
-      deletedKeywordIds = tombstones.map((d) => d._id);
-    }
-
-    const responseData = {
-      keywords: transformedKeywords,
-      deletedKeywordIds,
-      pagination,
-    };
-
-    if (!lastSync) {
-      const cacheKey = buildCacheKey(KEYWORDS_CACHE_NS, {
-        categoryId: categoryId || '',
-        isEnabled: isEnabled ?? '',
-        page: req.query.page || '',
-        limit: req.query.limit || '',
+      const { items: keywords, pagination } = await executePaginatedQuery({
+        model: Keyword,
+        filter,
+        query: req.query,
+        populate: {
+          path: 'category',
+          select: '_id name displayName',
+        },
       });
-      void setCache(cacheKey, responseData);
+
+      const transformedKeywords = keywords.map((keyword) => {
+        const keywordObj = keyword.toJSON();
+        if (keywordObj.category) {
+          keywordObj.category.id = keywordObj.category._id;
+          delete keywordObj.category._id;
+        }
+        return keywordObj;
+      });
+
+      const tombstones = await Keyword.find({ deletedAt: { $gt: since } }).select('_id');
+
+      return sendSuccess(res, 200, 'Keywords retrieved successfully', {
+        keywords: transformedKeywords,
+        deletedKeywordIds: tombstones.map((d) => d._id),
+        pagination,
+      });
     }
 
-    sendSuccess(res, 200, 'Keywords retrieved successfully', responseData);
+    const cacheKey = buildCacheKey(KEYWORDS_CACHE_NS, {
+      categoryId,
+      isEnabled,
+      page: req.query.page,
+      limit: req.query.limit,
+    });
+
+    const { data } = await getOrSetCache(cacheKey, fetchKeywords);
+
+    sendSuccess(res, 200, 'Keywords retrieved successfully', data);
   } catch (error) {
     next(error);
   }

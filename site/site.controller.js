@@ -3,7 +3,7 @@ const Category = require("../models/Category");
 const { executePaginatedQuery } = require("../utils/pagination");
 const { sendSuccess, sendError } = require("../utils/response");
 const { validateRequiredFields } = require("../utils/validation");
-const { buildCacheKey, getCache, setCache, invalidateNamespace } = require("../utils/cache");
+const { buildCacheKey, getOrSetCache, invalidateNamespace } = require("../utils/cache");
 const { seedSitesFileToDB } = require("./site.service");
 
 const SITES_CACHE_NS = "sites";
@@ -57,94 +57,117 @@ const getSites = async (req, res, next) => {
     const { categoryId, isActive, isBlocked, lastSync } = req.query;
     const isAdmin = Boolean(req.user && req.user.role === "admin");
 
-    if (!lastSync) {
-      const cacheKey = buildCacheKey(SITES_CACHE_NS, {
-        categoryId: categoryId || "",
-        isActive: isActive ?? "",
-        isBlocked: isBlocked ?? "",
-        isAdmin,
-        page: req.query.page || "",
-        limit: req.query.limit || "",
-        search: req.query.search || "",
-      });
-      const cached = await getCache(cacheKey);
-      if (cached) {
-        return sendSuccess(res, 200, "Sites retrieved successfully", cached);
+    const fetchSites = async () => {
+      const filter = { deletedAt: null };
+
+      if (isActive !== undefined) {
+        filter.isActive = isActive === "true" || isActive === true;
       }
-    }
 
-    const filter = { deletedAt: null };
+      if (isBlocked !== undefined) {
+        filter.isBlocked = isBlocked === "true" || isBlocked === true;
+      }
 
-    if (isActive !== undefined) {
-      filter.isActive = isActive === "true" || isActive === true;
-    }
+      if (!req.user || req.user.role !== "admin") {
+        filter.isActive = true;
+      }
 
-    if (isBlocked !== undefined) {
-      filter.isBlocked = isBlocked === "true" || isBlocked === true;
-    }
+      if (categoryId) {
+        filter.category = categoryId;
+      }
 
-    if (!req.user || req.user.role !== "admin") {
-      filter.isActive = true;
-    }
+      const { items: sites, pagination } = await executePaginatedQuery({
+        model: Site,
+        filter,
+        query: req.query,
+        populate: {
+          path: "category",
+          select: "_id name displayName",
+        },
+      });
 
-    if (categoryId) {
-      filter.category = categoryId;
-    }
+      const transformedSites = sites.map((site) => {
+        const siteObj = site.toJSON();
+        if (siteObj.category) {
+          siteObj.category.id = siteObj.category._id;
+          delete siteObj.category._id;
+        }
+        return siteObj;
+      });
+
+      return {
+        sites: transformedSites,
+        deletedSiteIds: [],
+        pagination,
+      };
+    };
 
     if (lastSync) {
       const since = new Date(lastSync);
+      const filter = { deletedAt: null };
+
+      if (isActive !== undefined) {
+        filter.isActive = isActive === "true" || isActive === true;
+      }
+
+      if (isBlocked !== undefined) {
+        filter.isBlocked = isBlocked === "true" || isBlocked === true;
+      }
+
+      if (!req.user || req.user.role !== "admin") {
+        filter.isActive = true;
+      }
+
+      if (categoryId) {
+        filter.category = categoryId;
+      }
+
       filter.$or = [
         { createdAt: { $gt: since } },
         { updatedAt: { $gt: since } },
       ];
-    }
 
-    const { items: sites, pagination } = await executePaginatedQuery({
-      model: Site,
-      filter,
-      query: req.query,
-      populate: {
-        path: "category",
-        select: "_id name displayName",
-      },
-    });
-
-    const transformedSites = sites.map((site) => {
-      const siteObj = site.toJSON();
-      if (siteObj.category) {
-        siteObj.category.id = siteObj.category._id;
-        delete siteObj.category._id;
-      }
-      return siteObj;
-    });
-
-    let deletedSiteIds = [];
-    if (lastSync) {
-      const since = new Date(lastSync);
-      const tombstones = await Site.find({ deletedAt: { $gt: since } }).select("_id");
-      deletedSiteIds = tombstones.map((d) => d._id);
-    }
-
-    const responseData = {
-      sites: transformedSites,
-      deletedSiteIds,
-      pagination,
-    };
-
-    if (!lastSync) {
-      const cacheKey = buildCacheKey(SITES_CACHE_NS, {
-        categoryId: categoryId || "",
-        isActive: isActive ?? "",
-        isBlocked: isBlocked ?? "",
-        isAdmin,
-        page: req.query.page || "",
-        limit: req.query.limit || "",
-        search: req.query.search || "",
+      const { items: sites, pagination } = await executePaginatedQuery({
+        model: Site,
+        filter,
+        query: req.query,
+        populate: {
+          path: "category",
+          select: "_id name displayName",
+        },
       });
-      void setCache(cacheKey, responseData);
+
+      const transformedSites = sites.map((site) => {
+        const siteObj = site.toJSON();
+        if (siteObj.category) {
+          siteObj.category.id = siteObj.category._id;
+          delete siteObj.category._id;
+        }
+        return siteObj;
+      });
+
+      const tombstones = await Site.find({ deletedAt: { $gt: since } }).select("_id");
+
+      return sendSuccess(res, 200, "Sites retrieved successfully", {
+        sites: transformedSites,
+        deletedSiteIds: tombstones.map((d) => d._id),
+        pagination,
+      });
     }
 
-    sendSuccess(res, 200, "Sites retrieved successfully", responseData);
+    const cacheKey = buildCacheKey(SITES_CACHE_NS, {
+      categoryId,
+      isActive,
+      isBlocked,
+      isAdmin,
+      page: req.query.page,
+      limit: req.query.limit,
+      search: req.query.search,
+    });
+
+    const { data } = await getOrSetCache(cacheKey, fetchSites);
+
+    sendSuccess(res, 200, "Sites retrieved successfully", data);
   } catch (error) {
     return next(error);
   }
