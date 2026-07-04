@@ -3,7 +3,10 @@ const Category = require("../models/Category");
 const { executePaginatedQuery } = require("../utils/pagination");
 const { sendSuccess, sendError } = require("../utils/response");
 const { validateRequiredFields } = require("../utils/validation");
+const { buildCacheKey, getCache, setCache, invalidateNamespace } = require("../utils/cache");
 const { seedSitesFileToDB } = require("./site.service");
+
+const SITES_CACHE_NS = "sites";
 
 const createSite = async (req, res, next) => {
   try {
@@ -38,6 +41,8 @@ const createSite = async (req, res, next) => {
       isBlocked: isBlocked !== undefined ? Boolean(isBlocked) : true,
     });
 
+    void invalidateNamespace(SITES_CACHE_NS);
+
     return sendSuccess(res, 201, "Site created successfully", { site });
   } catch (error) {
     if (error.code === 11000) {
@@ -50,6 +55,24 @@ const createSite = async (req, res, next) => {
 const getSites = async (req, res, next) => {
   try {
     const { categoryId, isActive, isBlocked, lastSync } = req.query;
+    const isAdmin = Boolean(req.user && req.user.role === "admin");
+
+    if (!lastSync) {
+      const cacheKey = buildCacheKey(SITES_CACHE_NS, {
+        categoryId: categoryId || "",
+        isActive: isActive ?? "",
+        isBlocked: isBlocked ?? "",
+        isAdmin,
+        page: req.query.page || "",
+        limit: req.query.limit || "",
+        search: req.query.search || "",
+      });
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        return sendSuccess(res, 200, "Sites retrieved successfully", cached);
+      }
+    }
+
     const filter = { deletedAt: null };
 
     if (isActive !== undefined) {
@@ -102,11 +125,26 @@ const getSites = async (req, res, next) => {
       deletedSiteIds = tombstones.map((d) => d._id);
     }
 
-    sendSuccess(res, 200, "Sites retrieved successfully", {
+    const responseData = {
       sites: transformedSites,
       deletedSiteIds,
       pagination,
-    });
+    };
+
+    if (!lastSync) {
+      const cacheKey = buildCacheKey(SITES_CACHE_NS, {
+        categoryId: categoryId || "",
+        isActive: isActive ?? "",
+        isBlocked: isBlocked ?? "",
+        isAdmin,
+        page: req.query.page || "",
+        limit: req.query.limit || "",
+        search: req.query.search || "",
+      });
+      void setCache(cacheKey, responseData);
+    }
+
+    sendSuccess(res, 200, "Sites retrieved successfully", responseData);
   } catch (error) {
     return next(error);
   }
@@ -131,6 +169,8 @@ const updateSite = async (req, res, next) => {
 
     await site.save();
 
+    void invalidateNamespace(SITES_CACHE_NS);
+
     return sendSuccess(res, 200, "Site updated successfully", { site });
   } catch (error) {
     if (error.code === 11000) {
@@ -150,6 +190,8 @@ const deleteSite = async (req, res, next) => {
       { new: true },
     );
 
+    void invalidateNamespace(SITES_CACHE_NS);
+
     return sendSuccess(res, 200, "Site deleted successfully", {
       id: site ? site._id.toString() : null,
     });
@@ -161,6 +203,8 @@ const deleteSite = async (req, res, next) => {
 const uploadSitesFile = async (req, res, next) => {
   try {
     await seedSitesFileToDB(req.file.path, req.body.categoryId);
+
+    void invalidateNamespace(SITES_CACHE_NS);
 
     return sendSuccess(res, 200, "Sites is seeded successfully");
   } catch (error) {

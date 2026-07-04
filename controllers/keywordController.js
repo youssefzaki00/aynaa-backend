@@ -3,6 +3,9 @@ const Category = require('../models/Category');
 const { sendSuccess, sendError } = require('../utils/response');
 const { executePaginatedQuery } = require('../utils/pagination');
 const { normalizeWord, validateRequiredFields } = require('../utils/validation');
+const { buildCacheKey, getCache, setCache, invalidateNamespace } = require('../utils/cache');
+
+const KEYWORDS_CACHE_NS = 'keywords';
 
 /**
  * Create a new keyword
@@ -37,6 +40,8 @@ const createKeyword = async (req, res, next) => {
     // Populate category for response
     await keyword.populate('category');
 
+    void invalidateNamespace(KEYWORDS_CACHE_NS);
+
     sendSuccess(res, 201, 'Keyword created successfully', {
       keyword: {
         id: keyword._id,
@@ -61,6 +66,19 @@ const createKeyword = async (req, res, next) => {
 const getKeywords = async (req, res, next) => {
   try {
     const { categoryId, isEnabled, lastSync } = req.query;
+
+    if (!lastSync) {
+      const cacheKey = buildCacheKey(KEYWORDS_CACHE_NS, {
+        categoryId: categoryId || '',
+        isEnabled: isEnabled ?? '',
+        page: req.query.page || '',
+        limit: req.query.limit || '',
+      });
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        return sendSuccess(res, 200, 'Keywords retrieved successfully', cached);
+      }
+    }
 
     const filter = { deletedAt: null };
 
@@ -104,11 +122,23 @@ const getKeywords = async (req, res, next) => {
       deletedKeywordIds = tombstones.map((d) => d._id);
     }
 
-    sendSuccess(res, 200, 'Keywords retrieved successfully', {
+    const responseData = {
       keywords: transformedKeywords,
       deletedKeywordIds,
       pagination,
-    });
+    };
+
+    if (!lastSync) {
+      const cacheKey = buildCacheKey(KEYWORDS_CACHE_NS, {
+        categoryId: categoryId || '',
+        isEnabled: isEnabled ?? '',
+        page: req.query.page || '',
+        limit: req.query.limit || '',
+      });
+      void setCache(cacheKey, responseData);
+    }
+
+    sendSuccess(res, 200, 'Keywords retrieved successfully', responseData);
   } catch (error) {
     next(error);
   }
@@ -143,6 +173,8 @@ const updateKeyword = async (req, res, next) => {
 
     await keyword.save();
     await keyword.populate('category');
+
+    void invalidateNamespace(KEYWORDS_CACHE_NS);
 
     const categoryData = keyword.category
       ? {
@@ -179,6 +211,8 @@ const deleteKeyword = async (req, res, next) => {
       { new: true }
     );
 
+    void invalidateNamespace(KEYWORDS_CACHE_NS);
+
     // delete method is idempotent — return 200 even if already deleted
     sendSuccess(res, 200, 'Keyword deleted successfully', {
       deletedKeyword: keyword
@@ -209,6 +243,8 @@ const toggleKeyword = async (req, res, next) => {
     keyword.isEnabled = !keyword.isEnabled;
     await keyword.save();
     await keyword.populate('category');
+
+    void invalidateNamespace(KEYWORDS_CACHE_NS);
 
     const categoryData = keyword.category
       ? {

@@ -1,5 +1,6 @@
 const { sendSuccess, sendError } = require('../utils/response');
 const { validateRequiredFields } = require('../utils/validation');
+const { buildCacheKey, getCache, setCache, invalidateNamespace } = require('../utils/cache');
 const {
   createApp,
   getApps,
@@ -8,6 +9,8 @@ const {
   updateApp,
   deleteApp,
 } = require('../services/app.service');
+
+const APPS_CACHE_NS = 'apps';
 
 const createAppController = async (req, res, next) => {
   try {
@@ -26,6 +29,8 @@ const createAppController = async (req, res, next) => {
     const app = await createApp({
       packageName: packageName.trim(),
     });
+
+    void invalidateNamespace(APPS_CACHE_NS);
 
     return sendSuccess(res, 201, 'App created successfully', {
       app: {
@@ -48,9 +53,18 @@ const createAppController = async (req, res, next) => {
 const getAppsController = async (req, res, next) => {
   try {
     const { lastSync } = req.query;
+
+    if (!lastSync) {
+      const cacheKey = buildCacheKey(APPS_CACHE_NS);
+      const cached = await getCache(cacheKey);
+      if (cached) {
+        return sendSuccess(res, 200, 'Apps retrieved successfully', cached);
+      }
+    }
+
     const { apps, deletedIds } = await getApps(lastSync);
 
-    return sendSuccess(res, 200, 'Apps retrieved successfully', {
+    const responseData = {
       apps: apps.map((app) => ({
         id: app.id,
         packageName: app.packageName,
@@ -60,7 +74,13 @@ const getAppsController = async (req, res, next) => {
         updatedAt: app.updatedAt,
       })),
       deletedIds,
-    });
+    };
+
+    if (!lastSync) {
+      void setCache(buildCacheKey(APPS_CACHE_NS), responseData);
+    }
+
+    return sendSuccess(res, 200, 'Apps retrieved successfully', responseData);
   } catch (error) {
     return next(error);
   }
@@ -94,6 +114,7 @@ const updateAppController = async (req, res, next) => {
     }
 
     const app = await updateApp(id, updates);
+    void invalidateNamespace(APPS_CACHE_NS);
     return sendSuccess(res, 200, 'App updated successfully', {
       app: {
         id: app.id,
@@ -121,6 +142,7 @@ const deleteAppController = async (req, res, next) => {
     }
 
     await deleteApp(id);
+    void invalidateNamespace(APPS_CACHE_NS);
     return sendSuccess(res, 200, 'App deleted successfully', {
       deletedApp: {
         id: existing.id,
