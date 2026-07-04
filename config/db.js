@@ -16,7 +16,7 @@ const getPerWorkerPoolSize = (totalSize, floor) => {
 const connectDB = async () => {
   try {
     // 1. هات الرابط مباشرة من غير أي تعديل
-    const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    const uri = process.env.MONGODB_URI;
 
     if (!uri) {
       throw new Error("❌ MONGO_URI is missing in environment variables!");
