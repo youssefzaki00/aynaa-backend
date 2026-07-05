@@ -15,11 +15,15 @@ const getPerWorkerPoolSize = (totalSize, floor) => {
 
 const connectDB = async () => {
   try {
-    // 1. هات الرابط مباشرة من غير أي تعديل
     const uri = process.env.MONGODB_URI;
 
     if (!uri) {
       throw new Error("❌ MONGO_URI is missing in environment variables!");
+    }
+
+    if (process.env.NODE_ENV === "test") {
+      const { assertTestDatabase } = require("../tests/helpers/assertTestDatabase");
+      assertTestDatabase();
     }
 
     const totalMaxPoolSize = Number(process.env.MONGO_MAX_POOL_SIZE) || 200;
