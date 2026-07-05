@@ -1,5 +1,7 @@
 const { sendSuccess, sendError } = require('../utils/response');
 const { validateRequiredFields } = require('../utils/validation');
+const { invalidateCache } = require('../utils/cacheInvalidate');
+const { CACHE_KEYS } = require('../constants/cacheKeys');
 const {
   createExcludedApp,
   getExcludedApps,
@@ -29,6 +31,8 @@ const createExcludedAppController = async (req, res, next) => {
     }
 
     const excludedApp = await createExcludedApp(packageName);
+
+    await invalidateCache(CACHE_KEYS.EXCLUDED_APPS);
 
     sendSuccess(res, 201, 'Excluded app created successfully', {
       excludedApp: {
@@ -105,6 +109,8 @@ const updateExcludedAppController = async (req, res, next) => {
 
     const updatedApp = await updateExcludedApp(id, updates);
 
+    await invalidateCache(CACHE_KEYS.EXCLUDED_APPS);
+
     sendSuccess(res, 200, 'Excluded app updated successfully', {
       excludedApp: {
         id: updatedApp.id,
@@ -133,6 +139,8 @@ const deleteExcludedAppController = async (req, res, next) => {
     }
 
     const deletedApp = await deleteExcludedApp(id);
+
+    await invalidateCache(CACHE_KEYS.EXCLUDED_APPS);
 
     sendSuccess(res, 200, 'Excluded app deleted successfully', {
       deletedExcludedApp: {

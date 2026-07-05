@@ -1,5 +1,7 @@
 const { sendSuccess, sendError } = require('../utils/response');
 const { validateRequiredFields } = require('../utils/validation');
+const { invalidateCache } = require('../utils/cacheInvalidate');
+const { CACHE_KEYS } = require('../constants/cacheKeys');
 const {
   createApp,
   getApps,
@@ -26,6 +28,8 @@ const createAppController = async (req, res, next) => {
     const app = await createApp({
       packageName: packageName.trim(),
     });
+
+    await invalidateCache(CACHE_KEYS.APPS);
 
     return sendSuccess(res, 201, 'App created successfully', {
       app: {
@@ -94,6 +98,9 @@ const updateAppController = async (req, res, next) => {
     }
 
     const app = await updateApp(id, updates);
+
+    await invalidateCache(CACHE_KEYS.APPS);
+
     return sendSuccess(res, 200, 'App updated successfully', {
       app: {
         id: app.id,
@@ -121,6 +128,9 @@ const deleteAppController = async (req, res, next) => {
     }
 
     await deleteApp(id);
+
+    await invalidateCache(CACHE_KEYS.APPS);
+
     return sendSuccess(res, 200, 'App deleted successfully', {
       deletedApp: {
         id: existing.id,

@@ -8,6 +8,8 @@ const {
 } = require("./excluded-app.controller");
 const { protect } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
+const { cacheResponse } = require("../middleware/cache");
+const { CACHE_KEYS, CACHE_TTL_SECONDS } = require("../constants/cacheKeys");
 
 /**
  * @swagger
@@ -94,7 +96,13 @@ router.post("/", protect, adminOnly, createExcludedAppController);
  *       401: { description: "Unauthorized" }
  *       403: { description: "Admin access required" }
  */
-router.get("/", protect, getExcludedAppsController);
+router.get(
+  "/",
+  protect,
+  adminOnly,
+  cacheResponse(CACHE_KEYS.EXCLUDED_APPS, CACHE_TTL_SECONDS),
+  getExcludedAppsController,
+);
 
 /**
  * @swagger

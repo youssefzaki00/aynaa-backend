@@ -10,6 +10,7 @@ const morgan = require("morgan");
 const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 const connectDB = require("./config/db");
+const { connectRedis, disconnectRedis } = require("./config/redis");
 const { globalLimiter } = require("./middleware/rateLimiter");
 const errorHandler = require("./middleware/errorHandler");
 const routes = require("./routes");
@@ -301,7 +302,9 @@ function startWorker() {
 
   // 1. استنى الداتا بيز تتصل الأول
   connectDB()
-    .then(() => {
+    .then(async () => {
+      await connectRedis();
+
       // 2. لما تنجح، شغل السيرفر
       const server = app.listen(PORT, () => {
         console.log(
@@ -313,8 +316,10 @@ function startWorker() {
       const gracefulShutdown = (signal) => {
         console.log(`🛑 [Worker ${process.pid}] Received ${signal}, shutting down gracefully...`);
         server.close(() => {
-          mongoose
-            .connection.close(false)
+          Promise.all([
+            mongoose.connection.close(false),
+            disconnectRedis(),
+          ])
             .then(() => {
               console.log(`✅ [Worker ${process.pid}] Closed remaining connections.`);
               process.exit(0);

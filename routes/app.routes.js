@@ -8,6 +8,8 @@ const {
 } = require('../controllers/appController');
 const { protect } = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
+const { cacheResponse } = require('../middleware/cache');
+const { CACHE_KEYS, CACHE_TTL_SECONDS } = require('../constants/cacheKeys');
 
 /**
  * @swagger
@@ -278,7 +280,7 @@ const adminOnly = require('../middleware/adminOnly');
 
 router.post('/', protect, adminOnly, createAppController);
 
-router.get('/', protect, getAppsController);
+router.get('/', protect, cacheResponse(CACHE_KEYS.APPS, CACHE_TTL_SECONDS), getAppsController);
 
 router.patch('/:id', protect, adminOnly, updateAppController);
 

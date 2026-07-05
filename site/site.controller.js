@@ -4,6 +4,8 @@ const { executePaginatedQuery } = require("../utils/pagination");
 const { sendSuccess, sendError } = require("../utils/response");
 const { validateRequiredFields } = require("../utils/validation");
 const { seedSitesFileToDB } = require("./site.service");
+const { invalidateCache } = require("../utils/cacheInvalidate");
+const { CACHE_KEYS } = require("../constants/cacheKeys");
 
 const createSite = async (req, res, next) => {
   try {
@@ -38,6 +40,8 @@ const createSite = async (req, res, next) => {
       isBlocked: isBlocked !== undefined ? Boolean(isBlocked) : true,
     });
 
+    await invalidateCache(CACHE_KEYS.SITES);
+
     return sendSuccess(res, 201, "Site created successfully", { site });
   } catch (error) {
     if (error.code === 11000) {
@@ -58,10 +62,6 @@ const getSites = async (req, res, next) => {
 
     if (isBlocked !== undefined) {
       filter.isBlocked = isBlocked === "true" || isBlocked === true;
-    }
-
-    if (!req.user || req.user.role !== "admin") {
-      filter.isActive = true;
     }
 
     if (categoryId) {
@@ -131,6 +131,8 @@ const updateSite = async (req, res, next) => {
 
     await site.save();
 
+    await invalidateCache(CACHE_KEYS.SITES);
+
     return sendSuccess(res, 200, "Site updated successfully", { site });
   } catch (error) {
     if (error.code === 11000) {
@@ -150,6 +152,8 @@ const deleteSite = async (req, res, next) => {
       { new: true },
     );
 
+    await invalidateCache(CACHE_KEYS.SITES);
+
     return sendSuccess(res, 200, "Site deleted successfully", {
       id: site ? site._id.toString() : null,
     });
@@ -161,6 +165,8 @@ const deleteSite = async (req, res, next) => {
 const uploadSitesFile = async (req, res, next) => {
   try {
     await seedSitesFileToDB(req.file.path, req.body.categoryId);
+
+    await invalidateCache(CACHE_KEYS.SITES);
 
     return sendSuccess(res, 200, "Sites is seeded successfully");
   } catch (error) {
