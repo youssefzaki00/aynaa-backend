@@ -1,14 +1,17 @@
 const Request = require('../models/Request');
+const { applySearchFilter } = require('../utils/search');
 
 exports.createRequest = async (payload) => {
   const request = await Request.create(payload);
   return request;
 };
 
-exports.getRequests = async ({ userId, type, page = 1, limit = 20 }) => {
+exports.getRequests = async ({ userId, type, search, page = 1, limit = 20 }) => {
   const filter = {};
   if (userId) filter.userId = userId;
   if (type) filter.type = type;
+
+  applySearchFilter(filter, search, ['type', 'message']);
 
   const total = await Request.countDocuments(filter);
   const skip = (page - 1) * limit;

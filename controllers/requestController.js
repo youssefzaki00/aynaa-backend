@@ -57,7 +57,7 @@ const postRequestController = async (req, res, next) => {
 
 const getRequestsController = async (req, res, next) => {
   try {
-    const { type, userId, page = 1, limit = 20 } = req.query;
+    const { type, userId, search, page = 1, limit = 20 } = req.query;
     const currentUser = req.user;
     const requestedUserId = userId || currentUser.id;
 
@@ -71,6 +71,7 @@ const getRequestsController = async (req, res, next) => {
     const { requests, pagination } = await getRequests({
       userId: requestedUserId,
       type,
+      search,
       page: pageNumber,
       limit: limitNumber,
     });

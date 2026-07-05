@@ -71,6 +71,7 @@ const getAllSuggestions = async (req, res, next) => {
       model: Suggestion,
       filter,
       query: req.query,
+      searchFields: ['content', 'note'],
       populate: { path: 'deviceId', select: 'deviceId' },
     });
 

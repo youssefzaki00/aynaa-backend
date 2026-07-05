@@ -83,6 +83,24 @@ describe("Sites API", () => {
     expect(resAll.body.data.sites.length).toBeGreaterThanOrEqual(1);
   });
 
+  test("GET /api/v1/sites (admin) searches by url", async () => {
+    await Site.create({
+      url: "https://unique-search-target.com",
+      category: categoryId,
+    });
+
+    const res = await request(app)
+      .get("/api/v1/sites")
+      .auth(adminToken, { type: "bearer" })
+      .query({ search: "unique-search-target" });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.body.data.sites.length).toBeGreaterThanOrEqual(1);
+    expect(
+      res.body.data.sites.every((s) => s.url.includes("unique-search-target")),
+    ).toBe(true);
+  });
+
   test("GET /api/v1/sites (non-admin) only gets active", async () => {
     const res = await request(app)
       .get("/api/v1/sites")

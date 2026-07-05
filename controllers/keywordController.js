@@ -85,6 +85,7 @@ const getKeywords = async (req, res, next) => {
       model: Keyword,
       filter,
       query: req.query,
+      searchFields: ['word'],
       populate: {
         path: 'category',
         select: '_id name displayName',

@@ -53,9 +53,9 @@ const createExcludedAppController = async (req, res, next) => {
  */
 const getExcludedAppsController = async (req, res, next) => {
   try {
-    const { lastSync } = req.query;
+    const { lastSync, search } = req.query;
 
-    const { excludedApps, deletedIds } = await getExcludedApps(lastSync);
+    const { excludedApps, deletedIds } = await getExcludedApps({ lastSync, search });
 
     sendSuccess(res, 200, 'Excluded apps retrieved successfully', {
       excludedApps: excludedApps.map((app) => ({

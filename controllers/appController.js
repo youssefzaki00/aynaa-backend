@@ -50,8 +50,8 @@ const createAppController = async (req, res, next) => {
 
 const getAppsController = async (req, res, next) => {
   try {
-    const { lastSync } = req.query;
-    const { apps, deletedIds } = await getApps(lastSync);
+    const { lastSync, search } = req.query;
+    const { apps, deletedIds } = await getApps({ lastSync, search });
 
     return sendSuccess(res, 200, 'Apps retrieved successfully', {
       apps: apps.map((app) => ({

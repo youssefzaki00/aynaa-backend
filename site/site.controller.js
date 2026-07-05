@@ -81,6 +81,7 @@ const getSites = async (req, res, next) => {
       model: Site,
       filter,
       query: req.query,
+      searchFields: ["url"],
       populate: {
         path: "category",
         select: "_id name displayName",

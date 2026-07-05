@@ -1,11 +1,12 @@
 const App = require('../models/App');
+const { applySearchFilter } = require('../utils/search');
 
 exports.createApp = async (payload) => {
   const app = await App.create(payload);
   return app;
 };
 
-exports.getApps = async (lastSync) => {
+exports.getApps = async ({ lastSync, search } = {}) => {
   const filter = { isDeleted: false };
   let deletedIds = [];
 
@@ -21,6 +22,8 @@ exports.getApps = async (lastSync) => {
     }).select('_id');
     deletedIds = tombstones.map((a) => a._id);
   }
+
+  applySearchFilter(filter, search, ['packageName']);
 
   const apps = await App.find(filter).sort({ createdAt: -1 });
   return { apps, deletedIds };

@@ -1,4 +1,5 @@
 const ExcludedApp = require('./ExcludedApp');
+const { applySearchFilter } = require('../utils/search');
 
 exports.createExcludedApp = async (packageName) => {
   const excludedApp = await ExcludedApp.create({
@@ -8,7 +9,7 @@ exports.createExcludedApp = async (packageName) => {
   return excludedApp;
 };
 
-exports.getExcludedApps = async (lastSync) => {
+exports.getExcludedApps = async ({ lastSync, search } = {}) => {
   const filter = { deletedAt: null };
   let deletedIds = [];
 
@@ -21,6 +22,8 @@ exports.getExcludedApps = async (lastSync) => {
     const tombstones = await ExcludedApp.find({ deletedAt: { $gt: since } }).select('_id');
     deletedIds = tombstones.map((d) => d._id);
   }
+
+  applySearchFilter(filter, search, ['packageName']);
 
   const excludedApps = await ExcludedApp.find(filter).sort({ createdAt: -1 });
   return { excludedApps, deletedIds };

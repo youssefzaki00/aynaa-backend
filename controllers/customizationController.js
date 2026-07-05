@@ -121,6 +121,7 @@ const getAllCustomizationRequests = async (req, res, next) => {
       model: CustomizationRequest,
       filter,
       query: req.query,
+      searchFields: ['content', 'appName', 'reason', 'deviceId'],
     });
 
     sendSuccess(res, 200, 'Requests retrieved', {

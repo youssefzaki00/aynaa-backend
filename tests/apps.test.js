@@ -62,6 +62,17 @@ describe("Apps API", () => {
       expect(res.body.data.apps.length).toBe(1);
     });
 
+    test("should filter by search query", async () => {
+      const res = await request(app)
+        .get("/api/v1/apps")
+        .auth(userToken, { type: "bearer" })
+        .query({ search: "example.app" });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.apps.length).toBe(1);
+      expect(res.body.data.apps[0].packageName).toBe("com.example.app");
+    });
+
     describe("should support lastSync query", () => {
       test("should return 0 apps", async () => {
         const res = await request(app)

@@ -4,6 +4,7 @@
  */
 
 const { DEFAULT_PAGINATION } = require('../config/constant');
+const { applySearchFilter } = require('./search');
 
 /** TEMP/testing: skip limit/skip on all list endpoints — set false to restore pagination */
 const PAGINATION_DISABLED = true;
@@ -51,6 +52,7 @@ const buildPaginationResponse = (total, page, limit) => {
  * @param {Object} options.model - Mongoose model
  * @param {Object} options.filter - Query filter object
  * @param {Object} options.query - Request query params
+ * @param {Array<String>} options.searchFields - Fields to match against query.search
  * @param {Object} options.select - Fields to select
  * @param {Object} options.sort - Sort options (default: {createdAt: -1})
  * @param {String|Object} options.populate - Population options
@@ -60,10 +62,15 @@ const executePaginatedQuery = async ({
   model,
   filter = {},
   query = {},
+  searchFields = [],
   select = '-__v',
   sort = { createdAt: -1 },
   populate = null,
 }) => {
+  if (searchFields.length > 0 && query.search) {
+    applySearchFilter(filter, query.search, searchFields);
+  }
+
   const { page, limit, skip } = parsePaginationParams(query);
 
   let dbQuery = model.find(filter).select(select).sort(sort);

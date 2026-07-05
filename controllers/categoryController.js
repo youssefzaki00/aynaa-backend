@@ -53,6 +53,7 @@ const getCategories = async (req, res, next) => {
       model: Category,
       filter,
       query: req.query,
+      searchFields: ['name', 'displayName', 'description'],
     });
 
     sendSuccess(res, 200, 'Categories retrieved successfully', {

@@ -132,6 +132,7 @@ const getAllUninstallRequests = async (req, res, next) => {
       model: UninstallRequest,
       filter,
       query: req.query,
+      searchFields: ['reason', 'adminNote'],
       populate: { path: 'deviceId', select: 'deviceId metadata' },
     });
 

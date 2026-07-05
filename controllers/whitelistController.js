@@ -42,6 +42,7 @@ const getWhitelist = async (req, res, next) => {
     const { items: whitelist, pagination } = await executePaginatedQuery({
       model: GlobalWhitelist,
       query: req.query,
+      searchFields: ['packageName', 'appName'],
     });
 
     // Map whitelist items to include id field
