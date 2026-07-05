@@ -69,6 +69,7 @@ const env = {
 
   // Cache
   CACHE_TTL_SECONDS: num(process.env.CACHE_TTL_SECONDS, 300),
+  CDN_CACHE_MAX_AGE: num(process.env.CDN_CACHE_MAX_AGE, 31536000),
 
   // Cloudflare CDN purge
   CLOUDFLARE_ZONE_ID: read("CLOUDFLARE_ZONE_ID", [

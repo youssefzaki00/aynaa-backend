@@ -8,8 +8,8 @@ const {
 } = require("./excluded-app.controller");
 const { protect } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
-const { cacheResponse } = require("../middleware/cache");
-const { CACHE_KEYS, CACHE_TTL_SECONDS, LIST_CACHES } = require("../constants/cacheKeys");
+const { edgeCache } = require("../middleware/edgeCache");
+const { LIST_CACHES } = require("../constants/cacheKeys");
 
 /**
  * @swagger
@@ -100,7 +100,7 @@ router.get(
   "/",
   protect,
   adminOnly,
-  cacheResponse(CACHE_KEYS.EXCLUDED_APPS, CACHE_TTL_SECONDS, LIST_CACHES.EXCLUDED_APPS.tag),
+  edgeCache(undefined, LIST_CACHES.EXCLUDED_APPS.tag),
   getExcludedAppsController,
 );
 

@@ -80,14 +80,16 @@ const purgeCloudflareCache = async (entries) => {
 
   const tags = [...new Set(entries.map((entry) => entry.tag).filter(Boolean))];
 
-  const strategies = [
-    { label: "prefixes", body: { prefixes } },
-    { label: "files", body: { files } },
-  ];
+  const strategies = [];
 
   if (tags.length) {
     strategies.push({ label: "tags", body: { tags } });
   }
+
+  strategies.push(
+    { label: "prefixes", body: { prefixes } },
+    { label: "files", body: { files } },
+  );
 
   for (const { label, body } of strategies) {
     try {
