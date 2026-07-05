@@ -11,7 +11,7 @@ const invalidateCache = async (...keys) => {
     await getRedisClient().del(keys);
   } catch (err) {
     console.error(
-      `[Cache] Invalidation failed for [${keys.join(", ")}]:`,
+      `[Cache] Redis invalidation failed for [${keys.join(", ")}]:`,
       err.message,
     );
   }
@@ -29,7 +29,7 @@ const invalidateListCache = async (...names) => {
 
   await Promise.all([
     invalidateCache(...entries.map((e) => e.redis)),
-    purgeCloudflareCache(entries.map((e) => e.path)),
+    purgeCloudflareCache(entries),
   ]);
 };
 

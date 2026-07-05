@@ -1,12 +1,14 @@
 const { CDN_CACHE_MAX_AGE } = require("../constants/cacheKeys");
 
 /**
- * Sets Cache-Control for Cloudflare edge caching.
- * Independent of Redis server-side cache (see middleware/cache.js).
+ * Sets Cache-Control + Cache-Tag for Cloudflare edge caching and tag-based purge.
  */
-const edgeCache = (maxAgeSeconds = CDN_CACHE_MAX_AGE) => {
+const edgeCache = (maxAgeSeconds = CDN_CACHE_MAX_AGE, cacheTag = null) => {
   return (req, res, next) => {
     res.set("Cache-Control", `public, max-age=${maxAgeSeconds}`);
+    if (cacheTag) {
+      res.set("Cache-Tag", cacheTag);
+    }
     next();
   };
 };
