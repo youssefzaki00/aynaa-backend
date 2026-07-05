@@ -245,9 +245,7 @@ const corsOptions = {
     "http://localhost:3000",
     "http://127.0.0.1:3000",
   ],
-  // Bearer JWT auth — no cookies. credentials:false lets Cloudflare cache public GETs
-  // (credentials:true forces Access-Control-Allow-Credentials and CF BYPASS).
-  credentials: false,
+  credentials: true,
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));

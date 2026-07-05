@@ -8,7 +8,6 @@ const {
 } = require('../controllers/appController');
 const { protect } = require('../middleware/auth');
 const adminOnly = require('../middleware/adminOnly');
-const stripVaryHeader = require('../middleware/stripVary');
 
 /**
  * @swagger
@@ -279,7 +278,7 @@ const stripVaryHeader = require('../middleware/stripVary');
 
 router.post('/', protect, adminOnly, createAppController);
 
-router.get('/', protect, stripVaryHeader, getAppsController);
+router.get('/', protect, getAppsController);
 
 router.patch('/:id', protect, adminOnly, updateAppController);
 
