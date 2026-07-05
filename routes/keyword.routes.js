@@ -7,7 +7,7 @@ const {
   deleteKeyword,
   toggleKeyword,
 } = require("../controllers/keywordController");
-const { protect } = require("../middleware/auth");
+const { protect, protectLight } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
 const { cacheResponse } = require("../middleware/cache");
 const { edgeCache } = require("../middleware/edgeCache");
@@ -108,7 +108,7 @@ router.post("/", protect, adminOnly, createKeyword);
  *                         pages: { type: integer }
  *       401: { description: "Unauthorized" }
  */
-router.get("/", protect, edgeCache(), cacheResponse(CACHE_KEYS.KEYWORDS, CACHE_TTL_SECONDS), getKeywords);
+router.get("/", protectLight, edgeCache(), cacheResponse(CACHE_KEYS.KEYWORDS, CACHE_TTL_SECONDS), getKeywords);
 
 /**
  * @swagger

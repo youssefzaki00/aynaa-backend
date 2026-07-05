@@ -23,7 +23,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { JWT_SECRET } = require('../config/constant');
 
-// Protect routes - JWT Verification
+// Protect routes - JWT Verification + DB user lookup
 const protect = async (req, res, next) => {
   let token;
 
@@ -65,6 +65,35 @@ const protect = async (req, res, next) => {
   }
 };
 
+/**
+ * Lightweight auth for global read-only cache-hit routes.
+ * Verifies JWT only — no MongoDB lookup. Controllers on these routes
+ * must not depend on req.user fields beyond id.
+ */
+const protectLight = (req, res, next) => {
+  if (
+    !req.headers.authorization ||
+    !req.headers.authorization.startsWith("Bearer")
+  ) {
+    return res.status(401).json({
+      success: false,
+      message: "Access denied. No token provided.",
+    });
+  }
+
+  try {
+    const token = req.headers.authorization.split(" ")[1];
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = { id: decoded.id };
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: "Access denied. Invalid token.",
+    });
+  }
+};
+
 // Deprecated: Legacy Admin Authentication Middleware (Will be removed)
 const authenticateAdmin = (req, res, next) => {
   const adminKey = req.header("x-admin-key");
@@ -86,4 +115,4 @@ const authenticateAdmin = (req, res, next) => {
   next();
 };
 
-module.exports = { authenticateAPI, authenticateAdmin, protect };
+module.exports = { authenticateAPI, authenticateAdmin, protect, protectLight };

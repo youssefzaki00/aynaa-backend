@@ -7,7 +7,7 @@ const {
   deleteSite,
   uploadSitesFile,
 } = require("./site.controller");
-const { protect } = require("../middleware/auth");
+const { protect, protectLight } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
 const { cacheResponse } = require("../middleware/cache");
 const { CACHE_KEYS, CACHE_TTL_SECONDS } = require("../constants/cacheKeys");
@@ -61,7 +61,7 @@ const upload = multer({ dest: "uploads/" });
  *                       type: object
  *       401: { description: "Unauthorized" }
  */
-router.get("/", protect, cacheResponse(CACHE_KEYS.SITES, CACHE_TTL_SECONDS), getSites);
+router.get("/", protectLight, cacheResponse(CACHE_KEYS.SITES, CACHE_TTL_SECONDS), getSites);
 
 /**
  * @swagger
