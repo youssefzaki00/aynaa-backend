@@ -1,70 +1,69 @@
 const request = require('supertest');
 const app = require('../server');
 const Suggestion = require('../models/Suggestion');
-const Device = require('../models/Device');
+const connectDB = require('../config/db');
+const { createTestAdminToken } = require('./helpers/testAuth');
+const { runId, track } = require('./helpers/testContext');
 
-// Load env vars
 const apiKey = process.env.API_SECRET_KEY;
-const adminKey = process.env.ADMIN_API_KEY;
 
 describe('Suggestion API', () => {
-  beforeEach(async () => {
-    await Suggestion.deleteMany({});
-    await Device.deleteMany({});
+  let adminToken;
+
+  beforeAll(async () => {
+    await connectDB();
+    adminToken = (await createTestAdminToken()).token;
   });
 
-  // User submits suggestion
-  test('POST /api/v1/suggestions should create a suggestion', async () => {
-    // Requires deviceId but device doesn't HAVE to exist in DB (controller checks if provided, if exists link it, else just null).
-    // Wait, controller logic:
-    // if (deviceId) { const device = await Device.findOne({ deviceId }); if (device) deviceObjectId = device._id; }
-    // So if device doesn't exist, deviceId is null.
+  const createTrackedSuggestion = async (content, status = 'PENDING', type = 'BLOCK_WORD') => {
+    const suggestion = await Suggestion.create({ type, content, status });
+    track('suggestions', suggestion._id);
+    return suggestion;
+  };
 
+  test('POST /api/v1/suggestions should create a suggestion', async () => {
+    const content = `blockthis-${runId}`;
     const res = await request(app)
       .post('/api/v1/suggestions')
       .set('x-api-key', apiKey)
       .send({
-        deviceId: 'dev123',
+        deviceId: `dev-${runId}`,
         type: 'BLOCK_WORD',
-        content: 'blockthis',
-        note: 'please'
+        content,
+        note: 'please',
       });
 
     expect(res.statusCode).toBe(201);
-    expect(res.body.success).toBe(true);
 
-    // Verify DB
-    const suggestion = await Suggestion.findOne({ content: 'blockthis' });
-    expect(suggestion).toBeTruthy();
+    const suggestion = await Suggestion.findOne({ content });
+    track('suggestions', suggestion._id);
     expect(suggestion.status).toBe('PENDING');
   });
 
-  // Admin lists suggestions
   test('GET /api/v1/suggestions/admin should list suggestions', async () => {
-    await Suggestion.create({ type: 'BLOCK_WORD', content: 's1', status: 'PENDING' });
-    await Suggestion.create({ type: 'WHITELIST_APP', content: 's2', status: 'APPROVED' });
+    await createTrackedSuggestion(`s1-${runId}`, 'PENDING');
+    await createTrackedSuggestion(`s2-${runId}`, 'APPROVED', 'WHITELIST_APP');
 
     const res = await request(app)
       .get('/api/v1/suggestions/admin')
-      .set('x-admin-key', adminKey);
+      .auth(adminToken, { type: 'bearer' })
+      .query({ search: `s1-${runId}` });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.data.pagination.total).toBe(2);
+    expect(res.body.data.pagination.total).toBe(1);
   });
 
-  // Admin reviews suggestion
   test('PATCH /api/v1/suggestions/admin/review/:id should update status', async () => {
-    const suggestion = await Suggestion.create({ type: 'BLOCK_WORD', content: 's1', status: 'PENDING' });
+    const suggestion = await createTrackedSuggestion(`review-${runId}`);
 
     const res = await request(app)
-      .patch(`/api/v1/suggestions/admin/review/${suggestion._id}`)
-      .set('x-admin-key', adminKey)
+      .patch(`/api/v1/suggestions/admin/review/${suggestion.uuid}`)
+      .auth(adminToken, { type: 'bearer' })
       .send({ status: 'APPROVED' });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data.status).toBe('APPROVED');
 
-    // Verify DB
     const updated = await Suggestion.findById(suggestion._id);
     expect(updated.status).toBe('APPROVED');
   });

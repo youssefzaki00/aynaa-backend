@@ -2,136 +2,119 @@ const request = require("supertest");
 const app = require("../server");
 const connectDB = require("../config/db");
 const Site = require("../site/Site");
-const { createAdminToken } = require("../utils/createAdminToken");
-const User = require("../models/User");
-const Category = require("../models/Category");
-const { createCategories } = require("./factories/category.factory");
-const { createUserToken } = require("../utils/createUserToken");
+const { createTestAdminToken, createTestUserToken } = require("./helpers/testAuth");
+const { createTestCategory } = require("./helpers/testFactories");
+const { runId, track, testUrl } = require("./helpers/testContext");
 
 describe("Sites API", () => {
-  let db;
   let adminToken;
-  let categories;
   let userToken;
   let categoryId;
 
   beforeAll(async () => {
-    db = await connectDB();
-    await Category.deleteMany({});
-    await User.deleteMany({});
-
-    await Site.deleteMany({});
-    categories = await createCategories();
-
-    adminToken = await createAdminToken();
-    userToken = await createUserToken();
-    categoryId = categories[0]._id.toString();
+    await connectDB();
+    const category = await createTestCategory("sites");
+    categoryId = category._id.toString();
+    adminToken = (await createTestAdminToken()).token;
+    userToken = (await createTestUserToken()).token;
   });
 
-  afterAll(async () => {
-    await db.connection.close();
-  });
+  const createTrackedSite = async (slug, extra = {}) => {
+    const site = await Site.create({
+      url: testUrl(slug),
+      category: categoryId,
+      ...extra,
+    });
+    track("sites", site._id);
+    return site;
+  };
 
   test("POST /api/v1/sites (admin) creates site", async () => {
+    const url = testUrl("created-via-api");
     const res = await request(app)
       .post("/api/v1/sites")
       .auth(adminToken, { type: "bearer" })
-      .send({
-        url: "https://example.com",
-        categoryId: categoryId,
-      });
+      .send({ url, categoryId });
+
     expect(res.statusCode).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data.site.id).toBeDefined();
-    expect(res.body.data.site.url).toBe("https://example.com");
+    expect(res.body.data.site.url).toBe(url);
+    track("sites", res.body.data.site.id);
   });
 
   test("POST /api/v1/sites (admin) creates site with isActive false", async () => {
+    const url = testUrl("inactive");
     const res = await request(app)
       .post("/api/v1/sites")
       .auth(adminToken, { type: "bearer" })
-      .send({
-        url: "https://inactive-site.com",
-        categoryId: categoryId,
-        isActive: false,
-      });
+      .send({ url, categoryId, isActive: false });
+
     expect(res.statusCode).toBe(201);
     expect(res.body.data.site.isActive).toBe(false);
+    track("sites", res.body.data.site.id);
   });
 
   test("GET /api/v1/sites (admin) can filter by isActive query", async () => {
-    await Site.create({
-      url: "https://inactive.com",
-      isActive: false,
-      category: categoryId,
-    });
+    await createTrackedSite("filter-inactive", { isActive: false });
+    await createTrackedSite("filter-active", { isActive: true });
 
     const resTrue = await request(app)
-      .get("/api/v1/sites?isActive=true")
-      .auth(adminToken, { type: "bearer" });
+      .get("/api/v1/sites")
+      .auth(adminToken, { type: "bearer" })
+      .query({ isActive: true, search: runId });
 
     expect(resTrue.statusCode).toBe(200);
-    expect(Array.isArray(resTrue.body.data.sites)).toBe(true);
-    expect(resTrue.body.data.sites.every((s) => s.isActive === true)).toBe(
+    expect(resTrue.body.data.sites.every((s) => s.isActive === true)).toBe(true);
+    expect(resTrue.body.data.sites.some((s) => s.url.includes("filter-active"))).toBe(
       true,
     );
-
-    const resAll = await request(app)
-      .get("/api/v1/sites")
-      .auth(adminToken, { type: "bearer" });
-
-    expect(resAll.body.data.sites.length).toBeGreaterThanOrEqual(1);
   });
 
   test("GET /api/v1/sites (admin) searches by url", async () => {
-    await Site.create({
-      url: "https://unique-search-target.com",
-      category: categoryId,
-    });
+    await createTrackedSite("search-target");
 
     const res = await request(app)
       .get("/api/v1/sites")
       .auth(adminToken, { type: "bearer" })
-      .query({ search: "unique-search-target" });
+      .query({ search: `${runId}-search-target` });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data.sites.length).toBeGreaterThanOrEqual(1);
-    expect(
-      res.body.data.sites.every((s) => s.url.includes("unique-search-target")),
-    ).toBe(true);
+    expect(res.body.data.sites.every((s) => s.url.includes(runId))).toBe(true);
   });
 
   test("GET /api/v1/sites (non-admin) only gets active", async () => {
+    await createTrackedSite("user-inactive", { isActive: false });
+    await createTrackedSite("user-active", { isActive: true });
+
     const res = await request(app)
       .get("/api/v1/sites")
-      .auth(userToken, { type: "bearer" });
+      .auth(userToken, { type: "bearer" })
+      .query({ search: runId });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data.sites.every((s) => s.isActive === true)).toBe(true);
+    expect(res.body.data.sites.some((s) => s.url.includes("user-active"))).toBe(true);
+    expect(res.body.data.sites.some((s) => s.url.includes("user-inactive"))).toBe(false);
   });
 
   test("PATCH /api/v1/sites/:id (admin) updates site", async () => {
-    const site = await Site.create({
-      url: "https://update-me.com",
-      category: categoryId,
-    });
+    const site = await createTrackedSite("update-me");
+    const updatedUrl = testUrl("updated");
 
     const res = await request(app)
       .patch(`/api/v1/sites/${site._id}`)
       .auth(adminToken, { type: "bearer" })
-      .send({ url: "https://updated.com", isActive: false });
+      .send({ url: updatedUrl, isActive: false });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.data.site.url).toBe("https://updated.com");
+    expect(res.body.data.site.url).toBe(updatedUrl);
     expect(res.body.data.site.isActive).toBe(false);
   });
 
   test("PATCH /api/v1/sites/:id (admin) toggles isActive", async () => {
-    const site = await Site.create({
-      url: "https://toggle-active.com",
-      category: categoryId,
-      isActive: true,
-    });
+    const site = await createTrackedSite("toggle-active", { isActive: true });
 
     const res = await request(app)
       .patch(`/api/v1/sites/${site._id}`)
@@ -143,10 +126,7 @@ describe("Sites API", () => {
   });
 
   test("DELETE /api/v1/sites/:id (admin) soft-deletes site", async () => {
-    const site = await Site.create({
-      url: "https://delete.com",
-      category: categoryId,
-    });
+    const site = await createTrackedSite("delete-me");
 
     const res = await request(app)
       .delete(`/api/v1/sites/${site._id}`)
@@ -162,33 +142,28 @@ describe("Sites API", () => {
 
   describe("lastSync and soft delete tombstones", () => {
     test("should return sites changed after lastSync", async () => {
-      const site = await Site.create({
-        url: "https://sync-test.com",
-        category: categoryId,
-      });
+      const site = await createTrackedSite("sync-test");
       const lastSync = new Date().toISOString();
+      const updatedUrl = testUrl("sync-updated");
 
       await request(app)
         .patch(`/api/v1/sites/${site._id}`)
         .auth(adminToken, { type: "bearer" })
-        .send({ url: "https://sync-updated.com" });
+        .send({ url: updatedUrl });
 
       const res = await request(app)
         .get("/api/v1/sites")
         .auth(adminToken, { type: "bearer" })
-        .query({ lastSync });
+        .query({ lastSync, search: runId });
 
       expect(res.statusCode).toBe(200);
       const urls = res.body.data.sites.map((s) => s.url);
-      expect(urls).toContain("https://sync-updated.com");
+      expect(urls).toContain(updatedUrl);
       expect(Array.isArray(res.body.data.deletedSiteIds)).toBe(true);
     });
 
     test("should return deletedSiteIds after soft delete", async () => {
-      const site = await Site.create({
-        url: "https://tombstone.com",
-        category: categoryId,
-      });
+      const site = await createTrackedSite("tombstone");
       const lastSync = new Date().toISOString();
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -200,7 +175,7 @@ describe("Sites API", () => {
       const res = await request(app)
         .get("/api/v1/sites")
         .auth(adminToken, { type: "bearer" })
-        .query({ lastSync });
+        .query({ lastSync, search: runId });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data.deletedSiteIds.map(String)).toContain(site._id.toString());
@@ -214,14 +189,13 @@ describe("Sites API", () => {
         .post("/api/v1/sites/upload")
         .auth(adminToken, { type: "bearer" })
         .attach("file", "tests/assets/test.txt")
-        .field("categoryId", categories[0]._id.toString());
+        .field("categoryId", categoryId);
 
       expect(res.statusCode).toBe(200);
 
-      const sites = await Site.find({})
-
-      expect(sites.length).toBeGreaterThanOrEqual(10)
-
+      const uploaded = await Site.find({ category: categoryId });
+      uploaded.forEach((site) => track("sites", site._id));
+      expect(uploaded.length).toBeGreaterThanOrEqual(10);
     });
   });
 });

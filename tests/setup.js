@@ -13,9 +13,11 @@ const { assertTestDatabase } = require("./helpers/assertTestDatabase");
 assertTestDatabase();
 
 const matchers = require('jest-date')
+const { cleanupTestData } = require("./helpers/cleanup");
+
 expect.extend(matchers)
 
-// Close database connection after all tests are done
 afterAll(async () => {
+  await cleanupTestData();
   await mongoose.connection.close();
 });

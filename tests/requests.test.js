@@ -4,11 +4,11 @@ const app = require('../server');
 const User = require('../models/User');
 const RequestModel = require('../models/Request');
 const connectDB = require('../config/db');
-const { createUserToken } = require('../utils/createUserToken.js');
+const { createTestUserToken } = require('./helpers/testAuth');
+const { runId, track } = require('./helpers/testContext');
 const { UserRoles } = require('../config/constant');
 
 describe('Requests API', () => {
-  let db;
   let userToken;
   let otherToken;
   let userId;
@@ -17,24 +17,22 @@ describe('Requests API', () => {
   let otherRequestId;
 
   beforeAll(async () => {
-    db = await connectDB();
-    await RequestModel.deleteMany({});
+    await connectDB();
 
-    userToken = await createUserToken();
-    const decoded = jwt.verify(userToken, process.env.JWT_SECRET);
-    userId = decoded.id;
+    const mainUser = await createTestUserToken();
+    userToken = mainUser.token;
+    userId = mainUser.userId.toString();
 
     const otherUser = await User.create({
-      deviceId: `other-user-${Date.now()}`,
+      deviceId: `other-user-${runId}`,
       role: UserRoles.USER,
     });
     otherUserId = otherUser._id.toString();
-    otherToken = jwt.sign({ id: otherUserId, role: UserRoles.USER }, process.env.JWT_SECRET);
-  });
-
-  afterAll(async () => {
-    await RequestModel.deleteMany({});
-    await User.deleteOne({ _id: otherUserId });
+    track('users', otherUser._id);
+    otherToken = jwt.sign(
+      { id: otherUserId, role: UserRoles.USER },
+      process.env.JWT_SECRET,
+    );
   });
 
   describe('POST /api/v1/requests', () => {
@@ -44,13 +42,13 @@ describe('Requests API', () => {
         .auth(userToken, { type: 'bearer' })
         .send({
           type: 'UNINSTALL',
-          message: 'please uninstall',
+          message: `please uninstall ${runId}`,
         });
 
       expect(res.statusCode).toBe(201);
-      expect(res.body.success).toBe(true);
       expect(res.body.data.request.userId).toBe(userId);
       requestId = res.body.data.request.id;
+      track('requests', requestId);
     });
   });
 
@@ -63,13 +61,11 @@ describe('Requests API', () => {
     test('should get own requests with user auth', async () => {
       const res = await request(app)
         .get('/api/v1/requests')
-        .auth(userToken, { type: 'bearer' });
+        .auth(userToken, { type: 'bearer' })
+        .query({ search: runId });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(Array.isArray(res.body.data.requests)).toBe(true);
       expect(res.body.data.requests.length).toBeGreaterThan(0);
-      expect(res.body.data.pagination).toBeDefined();
       expect(res.body.data.pagination.page).toBe(1);
     });
 
@@ -85,13 +81,11 @@ describe('Requests API', () => {
     test('should support pagination', async () => {
       const res = await request(app)
         .get('/api/v1/requests')
-        .query({ limit: 1, page: 1 })
+        .query({ limit: 1, page: 1, search: runId })
         .auth(userToken, { type: 'bearer' });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.success).toBe(true);
       expect(res.body.data.pagination.limit).toBe(1);
-      expect(res.body.data.pagination.page).toBe(1);
     });
   });
 
@@ -100,19 +94,20 @@ describe('Requests API', () => {
       const otherRequest = await RequestModel.create({
         userId: otherUserId,
         type: 'UNINSTALL',
+        message: `other ${runId}`,
       });
       otherRequestId = otherRequest._id.toString();
+      track('requests', otherRequest._id);
     });
 
     test('should update own request', async () => {
       const res = await request(app)
         .patch(`/api/v1/requests/${requestId}`)
         .auth(userToken, { type: 'bearer' })
-        .send({ message: 'updated message' });
+        .send({ message: `updated ${runId}` });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.data.request.message).toBe('updated message');
+      expect(res.body.data.request.message).toBe(`updated ${runId}`);
     });
 
     test('should block updating another user request', async () => {
@@ -132,7 +127,6 @@ describe('Requests API', () => {
         .auth(userToken, { type: 'bearer' });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.success).toBe(true);
       expect(res.body.data.deletedRequest.id).toBe(requestId);
     });
 

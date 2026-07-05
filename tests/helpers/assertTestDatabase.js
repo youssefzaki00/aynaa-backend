@@ -1,6 +1,5 @@
 /**
  * Block Jest from running against the production MongoDB database.
- * Several test suites call deleteMany({}) in beforeAll — that must never hit prod.
  */
 
 const getDatabaseName = (uri) => {
@@ -42,7 +41,7 @@ const assertTestDatabase = () => {
     [
       "REFUSING TO RUN TESTS ON NON-TEST DATABASE.",
       `Current database name: "${dbName}"`,
-      "Tests call deleteMany({}) and will erase sites, users, apps, and categories.",
+      "Tests must not run against the live production database.",
       "",
       "Production must use database: aynaa",
       "Tests must use a separate database: aynaa_test (or any name containing 'test')",

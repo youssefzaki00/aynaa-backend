@@ -2,30 +2,29 @@ const request = require("supertest");
 const app = require("../server");
 const Keyword = require("../models/Keyword");
 const connectDB = require("../config/db");
-const { createKeywords } = require("./factories/keyword.factory.js");
-const jwt = require("jsonwebtoken");
-const { createAdminToken } = require("../utils/createAdminToken.js");
-const { createCategories } = require("./factories/category.factory.js");
-const Category = require("../models/Category.js");
-
-// will be removed
-// Load env vars
-// No need to explicitly call dotenv again if server does it, but safer to do it:
-// Actually server does it.
-const adminKey = process.env.ADMIN_API_KEY;
+const { createTestAdminToken } = require("./helpers/testAuth");
+const {
+  createTestCategory,
+  createTestKeywords,
+} = require("./helpers/testFactories");
+const { runId, track, testWord } = require("./helpers/testContext");
 
 describe("Admin Keyword Management API", () => {
-  let keywords;
-  let db;
   let adminToken;
-  let keywordsCount = 20;
+  let keywords;
+  let keywordsCount;
+  let categoryId;
+
   beforeAll(async () => {
-    db = await connectDB();
-    await Keyword.deleteMany({});
-    await Category.deleteMany({});
-    keywords = await createKeywords(keywordsCount);
-    adminToken = await createAdminToken();
+    await connectDB();
+    const category = await createTestCategory("keywords");
+    categoryId = category._id;
+    keywords = await createTestKeywords(20, categoryId);
+    keywordsCount = keywords.length;
+    adminToken = (await createTestAdminToken()).token;
   });
+
+  const keywordSearchQuery = () => ({ search: runId });
 
   describe("POST /api/v1/keywords", () => {
     test("should return 401 without admin token", async () => {
@@ -33,34 +32,27 @@ describe("Admin Keyword Management API", () => {
       expect(res.statusCode).toBe(401);
     });
 
-    // test("should return 403 wit user token", async () => {
-    //   const res = await request(app).post("/api/v1/keywords");
-    //   expect(res.statusCode).toBe(401);
-    // });
-
     it("should create a keyword", async () => {
+      const word = testWord("created-via-api");
       const res = await request(app)
         .post("/api/v1/keywords")
         .auth(adminToken, { type: "bearer" })
-        .send({
-          word: "violence",
-          categoryId: keywords[0].category._id.toString(),
-        });
+        .send({ word, categoryId: categoryId.toString() });
 
       expect(res.statusCode).toBe(201);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.keyword.word).toBe("violence");
-
+      expect(res.body.data.keyword.word).toBe(word);
+      track("keywords", res.body.data.keyword.id);
       keywordsCount++;
     });
   });
 
-  // Test List
   describe("GET /api/v1/keywords should retrieve keywords", () => {
-    it("should return all keywords", async () => {
+    it("should return all keywords for this test run", async () => {
       const res = await request(app)
         .get("/api/v1/keywords")
-        .auth(adminToken, { type: "bearer" });
+        .auth(adminToken, { type: "bearer" })
+        .query(keywordSearchQuery());
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data.keywords).toHaveLength(keywordsCount);
@@ -69,8 +61,10 @@ describe("Admin Keyword Management API", () => {
 
     test("should return keywords created or updated after 2026-1-1", async () => {
       const res = await request(app)
-        .get(`/api/v1/keywords?lastSync=${"2026-01-01"}`)
-        .auth(adminToken, { type: "bearer" });
+        .get("/api/v1/keywords")
+        .auth(adminToken, { type: "bearer" })
+        .query({ lastSync: "2026-01-01", search: runId });
+
       expect(res.statusCode).toBe(200);
       expect(Array.isArray(res.body.data.deletedKeywordIds)).toBe(true);
       for (const keyword of res.body.data.keywords) {
@@ -82,15 +76,15 @@ describe("Admin Keyword Management API", () => {
 
     test("should return empty list for non-existent categoryId", async () => {
       const res = await request(app)
-        .get("/api/v1/keywords?categoryId=507f1f77bcf86cd799439011")
-        .auth(adminToken, { type: "bearer" });
+        .get("/api/v1/keywords")
+        .auth(adminToken, { type: "bearer" })
+        .query({ categoryId: "507f1f77bcf86cd799439011" });
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data.keywords).toEqual([]);
     });
   });
 
-  // Test Delete
   describe("DELETE /api/v1/admin/keywords/:id", () => {
     test("should delete keyword", async () => {
       const res = await request(app)
@@ -98,61 +92,60 @@ describe("Admin Keyword Management API", () => {
         .auth(adminToken, { type: "bearer" });
 
       expect(res.statusCode).toBe(200);
+      keywordsCount--;
     });
   });
 
-  // Test Update
   test("PATCH /api/v1/admin/keywords/:id should update keyword", async () => {
-    const newCategoryId = keywords[1].category._id.toString();
+    const newWord = testWord("patched");
     const res = await request(app)
       .patch(`/api/v1/keywords/${keywords[1]._id}`)
       .auth(adminToken, { type: "bearer" })
-      .send({ word: "new", categoryId: newCategoryId });
+      .send({ word: newWord, categoryId: categoryId.toString() });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.data.keyword.word).toBe("new");
-    expect(res.body.data.keyword.category.id).toBe(newCategoryId);
+    expect(res.body.data.keyword.word).toBe(newWord);
+    expect(res.body.data.keyword.category.id).toBe(categoryId.toString());
   });
 
   describe("lastSync incremental sync", () => {
     let syncKeyword;
-    let syncCategoryId;
 
     beforeAll(async () => {
-      await Keyword.deleteMany({});
-      await Category.deleteMany({});
-      const categories = await createCategories(1);
-      syncCategoryId = categories[0]._id.toString();
       syncKeyword = await Keyword.create({
-        word: "syncword",
-        category: categories[0]._id,
+        word: testWord("syncword"),
+        category: categoryId,
         isEnabled: true,
       });
+      track("keywords", syncKeyword._id);
     });
 
     test("should return update-only keyword after lastSync", async () => {
       const lastSync = new Date().toISOString();
+      const updatedWord = testWord("syncword-updated");
 
       await request(app)
         .patch(`/api/v1/keywords/${syncKeyword._id}`)
         .auth(adminToken, { type: "bearer" })
-        .send({ word: "syncword-updated" });
+        .send({ word: updatedWord });
 
       const res = await request(app)
-        .get(`/api/v1/keywords?lastSync=${lastSync}`)
-        .auth(adminToken, { type: "bearer" });
+        .get("/api/v1/keywords")
+        .auth(adminToken, { type: "bearer" })
+        .query({ lastSync, search: runId });
 
       expect(res.statusCode).toBe(200);
       const words = res.body.data.keywords.map((k) => k.word);
-      expect(words).toContain("syncword-updated");
+      expect(words).toContain(updatedWord);
     });
 
     test("should return deletedKeywordIds after soft delete", async () => {
       const keywordToDelete = await Keyword.create({
-        word: "todelete",
-        category: syncCategoryId,
+        word: testWord("todelete"),
+        category: categoryId,
         isEnabled: true,
       });
+      track("keywords", keywordToDelete._id);
       const lastSync = new Date().toISOString();
 
       await new Promise((resolve) => setTimeout(resolve, 10));
@@ -162,17 +155,19 @@ describe("Admin Keyword Management API", () => {
         .auth(adminToken, { type: "bearer" });
 
       const syncRes = await request(app)
-        .get(`/api/v1/keywords?lastSync=${lastSync}`)
-        .auth(adminToken, { type: "bearer" });
+        .get("/api/v1/keywords")
+        .auth(adminToken, { type: "bearer" })
+        .query({ lastSync, search: runId });
 
       expect(syncRes.statusCode).toBe(200);
       expect(syncRes.body.data.deletedKeywordIds.map(String)).toContain(
-        keywordToDelete._id.toString()
+        keywordToDelete._id.toString(),
       );
 
       const listRes = await request(app)
         .get("/api/v1/keywords")
-        .auth(adminToken, { type: "bearer" });
+        .auth(adminToken, { type: "bearer" })
+        .query(keywordSearchQuery());
 
       const ids = listRes.body.data.keywords.map((k) => k.id);
       expect(ids).not.toContain(keywordToDelete._id.toString());
