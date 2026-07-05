@@ -1,6 +1,5 @@
 const Site = require("./Site");
 const Category = require("../models/Category");
-const { UserRoles } = require("../config/constant");
 const { executePaginatedQuery } = require("../utils/pagination");
 const { sendSuccess, sendError } = require("../utils/response");
 const { validateRequiredFields } = require("../utils/validation");
@@ -57,12 +56,8 @@ const getSites = async (req, res, next) => {
     const { categoryId, isActive, lastSync } = req.query;
     const filter = { deletedAt: null };
 
-    if (req.user?.role === UserRoles.ADMIN) {
-      if (isActive !== undefined) {
-        filter.isActive = isActive === "true" || isActive === true;
-      }
-    } else {
-      filter.isActive = true;
+    if (isActive !== undefined) {
+      filter.isActive = toBool(isActive);
     }
 
     if (categoryId) {

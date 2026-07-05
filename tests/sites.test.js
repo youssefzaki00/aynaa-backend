@@ -84,7 +84,7 @@ describe("Sites API", () => {
     expect(res.body.data.sites.every((s) => s.url.includes(runId))).toBe(true);
   });
 
-  test("GET /api/v1/sites (non-admin) only gets active", async () => {
+  test("GET /api/v1/sites returns both active and inactive", async () => {
     await createTrackedSite("user-inactive", { isActive: false });
     await createTrackedSite("user-active", { isActive: true });
 
@@ -94,9 +94,9 @@ describe("Sites API", () => {
       .query({ search: runId });
 
     expect(res.statusCode).toBe(200);
-    expect(res.body.data.sites.every((s) => s.isActive === true)).toBe(true);
-    expect(res.body.data.sites.some((s) => s.url.includes("user-active"))).toBe(true);
-    expect(res.body.data.sites.some((s) => s.url.includes("user-inactive"))).toBe(false);
+    const urls = res.body.data.sites.map((s) => s.url);
+    expect(urls.some((u) => u.includes("user-inactive"))).toBe(true);
+    expect(urls.some((u) => u.includes("user-active"))).toBe(true);
   });
 
   test("PATCH /api/v1/sites/:id (admin) updates site", async () => {
