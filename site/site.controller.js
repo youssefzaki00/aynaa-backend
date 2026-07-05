@@ -1,14 +1,17 @@
 const Site = require("./Site");
 const Category = require("../models/Category");
+const { UserRoles } = require("../config/constant");
 const { executePaginatedQuery } = require("../utils/pagination");
 const { sendSuccess, sendError } = require("../utils/response");
 const { validateRequiredFields } = require("../utils/validation");
 const { seedSitesFileToDB } = require("./site.service");
 const { invalidateListCache } = require("../utils/cacheInvalidate");
 
+const toBool = (value) => value === true || value === "true";
+
 const createSite = async (req, res, next) => {
   try {
-    const { url, isActive, isBlocked, categoryId } = req.body;
+    const { url, isActive, categoryId } = req.body;
 
     const validation = validateRequiredFields(req.body, ["url", "categoryId"]);
     if (!validation.valid) {
@@ -35,8 +38,7 @@ const createSite = async (req, res, next) => {
     const site = await Site.create({
       url: url.trim(),
       category: category._id,
-      isActive: isActive !== undefined ? Boolean(isActive) : true,
-      isBlocked: isBlocked !== undefined ? Boolean(isBlocked) : true,
+      isActive: isActive !== undefined ? toBool(isActive) : true,
     });
 
     await invalidateListCache('SITES');
@@ -52,15 +54,15 @@ const createSite = async (req, res, next) => {
 
 const getSites = async (req, res, next) => {
   try {
-    const { categoryId, isActive, isBlocked, lastSync } = req.query;
+    const { categoryId, isActive, lastSync } = req.query;
     const filter = { deletedAt: null };
 
-    if (isActive !== undefined) {
-      filter.isActive = isActive === "true" || isActive === true;
-    }
-
-    if (isBlocked !== undefined) {
-      filter.isBlocked = isBlocked === "true" || isBlocked === true;
+    if (req.user?.role === UserRoles.ADMIN) {
+      if (isActive !== undefined) {
+        filter.isActive = isActive === "true" || isActive === true;
+      }
+    } else {
+      filter.isActive = true;
     }
 
     if (categoryId) {
@@ -125,7 +127,7 @@ const updateSite = async (req, res, next) => {
       site.url = url.trim();
     }
     if (isActive !== undefined) {
-      site.isActive = Boolean(isActive);
+      site.isActive = toBool(isActive);
     }
 
     await site.save();

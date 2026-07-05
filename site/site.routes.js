@@ -36,6 +36,10 @@ const upload = multer({ dest: "uploads/" });
  *         schema: { type: string }
  *         description: "Search term for site name or URL"
  *       - in: query
+ *         name: isActive
+ *         schema: { type: boolean }
+ *         description: "Filter by active/enabled status"
+ *       - in: query
  *         name: lastSync
  *         schema: { type: string, format: date-time }
  *         description: "Get sites created or updated after timestamp"
@@ -82,7 +86,7 @@ router.get("/", protectLight, edgeCache(undefined, LIST_CACHES.SITES.tag), cache
  *               name: { type: string, description: "Site name" }
  *               url: { type: string, format: uri, description: "Site URL" }
  *               category: { type: string, enum: [PORN, GAMBLING, ATHEISM, VIOLENCE, OTHER], description: "Site category" }
- *               isBlocked: { type: boolean, default: true, description: "Whether site is blocked" }
+ *               isActive: { type: boolean, default: true, description: "Whether site blocking is enabled" }
  *     responses:
  *       201:
  *         description: Site created
@@ -124,7 +128,7 @@ router.post("/", protect, adminOnly, createSite);
  *               name: { type: string, description: "Site name" }
  *               url: { type: string, format: uri, description: "Site URL" }
  *               category: { type: string, enum: [PORN, GAMBLING, ATHEISM, VIOLENCE, OTHER], description: "Site category" }
- *               isBlocked: { type: boolean, description: "Whether site is blocked" }
+ *               isActive: { type: boolean, description: "Whether site blocking is enabled" }
  *     responses:
  *       200:
  *         description: Site updated

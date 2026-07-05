@@ -46,7 +46,20 @@ describe("Sites API", () => {
     expect(res.body.data.site.url).toBe("https://example.com");
   });
 
-  test("GET /api/v1/sites (admin) can see all by isActive query", async () => {
+  test("POST /api/v1/sites (admin) creates site with isActive false", async () => {
+    const res = await request(app)
+      .post("/api/v1/sites")
+      .auth(adminToken, { type: "bearer" })
+      .send({
+        url: "https://inactive-site.com",
+        categoryId: categoryId,
+        isActive: false,
+      });
+    expect(res.statusCode).toBe(201);
+    expect(res.body.data.site.isActive).toBe(false);
+  });
+
+  test("GET /api/v1/sites (admin) can filter by isActive query", async () => {
     await Site.create({
       url: "https://inactive.com",
       isActive: false,
@@ -54,15 +67,12 @@ describe("Sites API", () => {
     });
 
     const resTrue = await request(app)
-      .get("/api/v1/sites?isActive=true&isBlocked=true")
+      .get("/api/v1/sites?isActive=true")
       .auth(adminToken, { type: "bearer" });
 
     expect(resTrue.statusCode).toBe(200);
     expect(Array.isArray(resTrue.body.data.sites)).toBe(true);
     expect(resTrue.body.data.sites.every((s) => s.isActive === true)).toBe(
-      true,
-    );
-    expect(resTrue.body.data.sites.every((s) => s.isBlocked === true)).toBe(
       true,
     );
 
@@ -95,6 +105,22 @@ describe("Sites API", () => {
 
     expect(res.statusCode).toBe(200);
     expect(res.body.data.site.url).toBe("https://updated.com");
+    expect(res.body.data.site.isActive).toBe(false);
+  });
+
+  test("PATCH /api/v1/sites/:id (admin) toggles isActive", async () => {
+    const site = await Site.create({
+      url: "https://toggle-active.com",
+      category: categoryId,
+      isActive: true,
+    });
+
+    const res = await request(app)
+      .patch(`/api/v1/sites/${site._id}`)
+      .auth(adminToken, { type: "bearer" })
+      .send({ isActive: false });
+
+    expect(res.statusCode).toBe(200);
     expect(res.body.data.site.isActive).toBe(false);
   });
 
