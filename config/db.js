@@ -1,6 +1,12 @@
 const mongoose = require("mongoose");
 const cluster = require("cluster");
 const os = require("os");
+const {
+  MONGODB_URI,
+  NODE_ENV,
+  MONGO_MAX_POOL_SIZE,
+  MONGO_MIN_POOL_SIZE,
+} = require("./env");
 
 // لو إحنا شغالين جوه Cluster Worker، كل Worker بيفتح Pool اتصالات لوحده.
 // عشان إجمالي الاتصالات على الداتابيز يفضل قريب من الرقم اللي محدده في
@@ -15,19 +21,19 @@ const getPerWorkerPoolSize = (totalSize, floor) => {
 
 const connectDB = async () => {
   try {
-    const uri = process.env.MONGODB_URI;
+    const uri = MONGODB_URI;
 
     if (!uri) {
-      throw new Error("❌ MONGO_URI is missing in environment variables!");
+      throw new Error("❌ MONGODB_URI is missing in environment variables!");
     }
 
-    if (process.env.NODE_ENV === "test") {
+    if (NODE_ENV === "test") {
       const { assertTestDatabase } = require("../tests/helpers/assertTestDatabase");
       assertTestDatabase();
     }
 
-    const totalMaxPoolSize = Number(process.env.MONGO_MAX_POOL_SIZE) || 200;
-    const totalMinPoolSize = Number(process.env.MONGO_MIN_POOL_SIZE) || 10;
+    const totalMaxPoolSize = MONGO_MAX_POOL_SIZE;
+    const totalMinPoolSize = MONGO_MIN_POOL_SIZE;
     const maxPoolSize = getPerWorkerPoolSize(totalMaxPoolSize, 5);
     const minPoolSize = Math.min(maxPoolSize, getPerWorkerPoolSize(totalMinPoolSize, 2));
 
@@ -46,7 +52,7 @@ const connectDB = async () => {
 
     // Query debug logging بيبقى مكلف جداً تحت الحمل (بيطبع كل Query في الـ Console)
     // لازم يشتغل بس في التطوير، مش في الـ Production.
-    if (process.env.NODE_ENV === "development") {
+    if (NODE_ENV === "development") {
       mongoose.set("debug", true);
     }
 

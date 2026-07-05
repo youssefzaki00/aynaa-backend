@@ -1,10 +1,11 @@
 const { createClient } = require("redis");
+const { REDIS_URL, REDIS_TLS_REJECT_UNAUTHORIZED } = require("./env");
 
 let client = null;
 let ready = false;
 
 const buildClientOptions = () => {
-  const url = process.env.REDIS_URL;
+  const url = REDIS_URL;
   if (!url) {
     return null;
   }
@@ -12,8 +13,7 @@ const buildClientOptions = () => {
   const options = { url };
 
   if (url.startsWith("rediss://")) {
-    const rejectUnauthorized =
-      process.env.REDIS_TLS_REJECT_UNAUTHORIZED !== "false";
+    const rejectUnauthorized = REDIS_TLS_REJECT_UNAUTHORIZED;
 
     options.socket = {
       tls: true,

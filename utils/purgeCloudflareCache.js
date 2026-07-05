@@ -1,16 +1,21 @@
-const getCloudflareConfig = () => {
-  const zoneId =
-    process.env.CLOUDFLARE_ZONE_ID || process.env.cloudflare_zone_id;
-  const apiToken =
-    process.env.CLOUDFLARE_API_TOKEN || process.env.cloudflare_api_key;
-  const apiOrigin =
-    process.env.CLOUDFLARE_API_ORIGIN || "https://api.aynaa.org";
+const {
+  CLOUDFLARE_ZONE_ID,
+  CLOUDFLARE_API_TOKEN,
+  CLOUDFLARE_CDN_HOST,
+  CLOUDFLARE_CDN_ORIGIN,
+} = require("../config/env");
 
-  if (!zoneId || !apiToken) {
+const getCloudflareConfig = () => {
+  if (!CLOUDFLARE_ZONE_ID || !CLOUDFLARE_API_TOKEN) {
     return null;
   }
 
-  return { zoneId, apiToken, apiOrigin };
+  return {
+    zoneId: CLOUDFLARE_ZONE_ID,
+    apiToken: CLOUDFLARE_API_TOKEN,
+    cdnHost: CLOUDFLARE_CDN_HOST,
+    apiOrigin: CLOUDFLARE_CDN_ORIGIN,
+  };
 };
 
 const purgeByType = async (config, body) => {
@@ -38,7 +43,8 @@ const purgeByType = async (config, body) => {
 };
 
 /**
- * Purge Cloudflare edge cache for list resources (single tag-based call).
+ * Purge Cloudflare edge cache for list resources.
+ * Prefix purge is first — it clears all query-string variants of each list URL.
  * @param {Array<{ path: string, prefix: string, tag: string }>} entries
  */
 const purgeCloudflareCache = async (entries) => {
@@ -46,43 +52,59 @@ const purgeCloudflareCache = async (entries) => {
 
   if (!config) {
     console.warn(
-      "[Cloudflare] Purge skipped — set cloudflare_zone_id and cloudflare_api_key in env",
+      "[Cloudflare] Purge skipped — set CLOUDFLARE_ZONE_ID and CLOUDFLARE_API_TOKEN on the server",
     );
-    return;
+    return false;
   }
 
   if (!entries?.length) {
-    return;
+    return false;
   }
 
-  const tags = [...new Set(entries.map((entry) => entry.tag))];
+  const prefixes = [
+    ...new Set(
+      entries.map((entry) => entry.prefix || `${config.cdnHost}${entry.path}`),
+    ),
+  ];
 
-  try {
-    await purgeByType(config, { tags });
-    console.log(
-      `[Cloudflare] Purged tags [${tags.join(", ")}] for: ${entries.map((e) => e.path).join(", ")}`,
-    );
-  } catch (err) {
-    console.error(`[Cloudflare] Tag purge failed:`, err.message);
+  const files = [
+    ...new Set(
+      entries.map((entry) => {
+        const normalized = entry.path.startsWith("/")
+          ? entry.path
+          : `/${entry.path}`;
+        return `${config.apiOrigin}${normalized}`;
+      }),
+    ),
+  ];
 
-    const files = [
-      ...new Set(
-        entries.map((entry) => {
-          const normalized = entry.path.startsWith("/")
-            ? entry.path
-            : `/${entry.path}`;
-          return `${config.apiOrigin}${normalized}`;
-        }),
-      ),
-    ];
+  const tags = [...new Set(entries.map((entry) => entry.tag).filter(Boolean))];
 
+  const strategies = [
+    { label: "prefixes", body: { prefixes } },
+    { label: "files", body: { files } },
+  ];
+
+  if (tags.length) {
+    strategies.push({ label: "tags", body: { tags } });
+  }
+
+  for (const { label, body } of strategies) {
     try {
-      await purgeByType(config, { files });
-      console.log(`[Cloudflare] Fallback file purge succeeded for: ${files.join(", ")}`);
-    } catch (fallbackErr) {
-      console.error(`[Cloudflare] File purge fallback failed:`, fallbackErr.message);
+      await purgeByType(config, body);
+      console.log(
+        `[Cloudflare] Purged via ${label} for: ${entries.map((e) => e.path).join(", ")}`,
+      );
+      return true;
+    } catch (err) {
+      console.error(`[Cloudflare] Purge via ${label} failed:`, err.message);
     }
   }
+
+  console.error(
+    "[Cloudflare] All purge strategies failed — dashboard may see stale data until edge TTL expires",
+  );
+  return false;
 };
 
-module.exports = { purgeCloudflareCache };
+module.exports = { purgeCloudflareCache, getCloudflareConfig };

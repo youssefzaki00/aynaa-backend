@@ -1,4 +1,6 @@
 // API Key Authentication Middleware
+const { API_SECRET_KEY, ADMIN_API_KEY } = require("../config/env");
+
 const authenticateAPI = (req, res, next) => {
   const apiKey = req.header("x-api-key");
 
@@ -9,7 +11,7 @@ const authenticateAPI = (req, res, next) => {
     });
   }
 
-  if (apiKey !== process.env.API_SECRET_KEY) {
+  if (apiKey !== API_SECRET_KEY) {
     return res.status(403).json({
       success: false,
       message: "Invalid API key.",
@@ -105,7 +107,7 @@ const authenticateAdmin = (req, res, next) => {
     });
   }
 
-  if (adminKey !== process.env.ADMIN_API_KEY) {
+  if (adminKey !== ADMIN_API_KEY) {
     return res.status(403).json({
       success: false,
       message: "Invalid admin key.",

@@ -3,10 +3,14 @@ const { getRedisClient, isRedisReady } = require("../config/redis");
 /**
  * Global Redis cache middleware for authenticated GET endpoints.
  * Only caches when there are zero query parameters (full-list requests).
- * Responses are never stored at CDN/browser (see apiCacheHeaders).
+ * Optional cacheTag is sent for Cloudflare tag-based purge of any edge-cached copies.
  */
-const cacheResponse = (cacheKey, ttlSeconds) => {
+const cacheResponse = (cacheKey, ttlSeconds, cacheTag = null) => {
   return async (req, res, next) => {
+    if (cacheTag) {
+      res.set("Cache-Tag", cacheTag);
+    }
+
     if (Object.keys(req.query).length > 0) {
       return next();
     }

@@ -1,9 +1,8 @@
-const { CDN_CACHE_MAX_AGE } = require("../constants/cacheKeys");
-
 /**
  * Sets Cache-Control + Cache-Tag for Cloudflare edge caching and tag-based purge.
+ * @deprecated List routes no longer use edge caching.
  */
-const edgeCache = (maxAgeSeconds = CDN_CACHE_MAX_AGE, cacheTag = null) => {
+const edgeCache = (maxAgeSeconds = 0, cacheTag = null) => {
   return (req, res, next) => {
     res.set("Cache-Control", `public, max-age=${maxAgeSeconds}`);
     if (cacheTag) {

@@ -1,3 +1,5 @@
+const { CACHE_TTL_SECONDS, CLOUDFLARE_CDN_HOST } = require("../config/env");
+
 const CACHE_KEYS = {
   KEYWORDS: "global:keywords",
   SITES: "global:sites",
@@ -5,44 +7,40 @@ const CACHE_KEYS = {
   EXCLUDED_APPS: "global:excluded-apps",
 };
 
-const CDN_HOST =
-  process.env.CLOUDFLARE_CDN_HOST || "api.aynaa.org";
+const CDN_HOST = CLOUDFLARE_CDN_HOST;
+
+const apiPath = (segment) => `${CDN_HOST}/api/v1/${segment}`;
 
 const LIST_CACHES = {
   KEYWORDS: {
     redis: CACHE_KEYS.KEYWORDS,
     path: "/api/v1/keywords",
     tag: "list-keywords",
-    prefix: `${CDN_HOST}/api/v1/keywords`,
+    prefix: apiPath("keywords"),
   },
   SITES: {
     redis: CACHE_KEYS.SITES,
     path: "/api/v1/sites",
     tag: "list-sites",
-    prefix: `${CDN_HOST}/api/v1/sites`,
+    prefix: apiPath("sites"),
   },
   APPS: {
     redis: CACHE_KEYS.APPS,
     path: "/api/v1/apps",
     tag: "list-apps",
-    prefix: `${CDN_HOST}/api/v1/apps`,
+    prefix: apiPath("apps"),
   },
   EXCLUDED_APPS: {
     redis: CACHE_KEYS.EXCLUDED_APPS,
     path: "/api/v1/excluded-apps",
     tag: "list-excluded-apps",
-    prefix: `${CDN_HOST}/api/v1/excluded-apps`,
+    prefix: apiPath("excluded-apps"),
   },
 };
-
-const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_SECONDS) || 300;
-// Legacy edge TTL — no longer applied to authenticated list routes.
-const CDN_CACHE_MAX_AGE = Number(process.env.CDN_CACHE_MAX_AGE) || 0;
 
 module.exports = {
   CACHE_KEYS,
   LIST_CACHES,
   CACHE_TTL_SECONDS,
-  CDN_CACHE_MAX_AGE,
   CDN_HOST,
 };

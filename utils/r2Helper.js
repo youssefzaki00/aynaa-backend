@@ -1,5 +1,6 @@
 const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const r2Client = require('../config/r2');
+const { R2_BUCKET_NAME, R2_PUBLIC_URL } = require('../config/env');
 const crypto = require('crypto');
 
 /**
@@ -15,7 +16,7 @@ const uploadFile = async (buffer, mimetype) => {
     const fileName = `uninstall-proofs/${crypto.randomBytes(16).toString('hex')}.${fileExtension}`;
 
     const command = new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
+      Bucket: R2_BUCKET_NAME,
       Key: fileName,
       Body: buffer,
       ContentType: mimetype,
@@ -24,7 +25,7 @@ const uploadFile = async (buffer, mimetype) => {
     await r2Client.send(command);
 
     // Construct public URL
-    const publicUrl = `${process.env.R2_PUBLIC_URL}/${fileName}`;
+    const publicUrl = `${R2_PUBLIC_URL}/${fileName}`;
     return publicUrl;
   } catch (error) {
     console.error('Error uploading to R2:', error);
@@ -39,10 +40,10 @@ const uploadFile = async (buffer, mimetype) => {
 const deleteFile = async (fileUrl) => {
   try {
     // Extract the key from the public URL
-    const key = fileUrl.replace(`${process.env.R2_PUBLIC_URL}/`, '');
+    const key = fileUrl.replace(`${R2_PUBLIC_URL}/`, '');
 
     const command = new DeleteObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
+      Bucket: R2_BUCKET_NAME,
       Key: key,
     });
 
