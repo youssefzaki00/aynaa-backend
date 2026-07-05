@@ -35,8 +35,9 @@ const LIST_CACHES = {
   },
 };
 
-const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_SECONDS) || 3600;
-const CDN_CACHE_MAX_AGE = Number(process.env.CDN_CACHE_MAX_AGE) || 31536000;
+const CACHE_TTL_SECONDS = Number(process.env.CACHE_TTL_SECONDS) || 300;
+// Legacy edge TTL — no longer applied to authenticated list routes.
+const CDN_CACHE_MAX_AGE = Number(process.env.CDN_CACHE_MAX_AGE) || 0;
 
 module.exports = {
   CACHE_KEYS,

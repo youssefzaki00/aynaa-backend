@@ -38,8 +38,7 @@ const purgeByType = async (config, body) => {
 };
 
 /**
- * Purge Cloudflare edge cache for list resources.
- * Uses files + prefixes + tags (one API call each) for maximum reliability.
+ * Purge Cloudflare edge cache for list resources (single tag-based call).
  * @param {Array<{ path: string, prefix: string, tag: string }>} entries
  */
 const purgeCloudflareCache = async (entries) => {
@@ -56,48 +55,33 @@ const purgeCloudflareCache = async (entries) => {
     return;
   }
 
-  const files = [
-    ...new Set(
-      entries.map((entry) => {
-        const normalized = entry.path.startsWith("/")
-          ? entry.path
-          : `/${entry.path}`;
-        return `${config.apiOrigin}${normalized}`;
-      }),
-    ),
-  ];
-
-  const prefixes = [...new Set(entries.map((entry) => entry.prefix))];
   const tags = [...new Set(entries.map((entry) => entry.tag))];
 
-  const strategies = [
-    { label: "files", body: { files } },
-    { label: "prefixes", body: { prefixes } },
-    { label: "tags", body: { tags } },
-  ];
-
-  const results = await Promise.allSettled(
-    strategies.map(async ({ label, body }) => {
-      await purgeByType(config, body);
-      return label;
-    }),
-  );
-
-  const failed = results.filter((r) => r.status === "rejected");
-  const succeeded = results
-    .filter((r) => r.status === "fulfilled")
-    .map((r) => r.value);
-
-  if (succeeded.length) {
+  try {
+    await purgeByType(config, { tags });
     console.log(
-      `[Cloudflare] Purged via [${succeeded.join(", ")}] for: ${entries.map((e) => e.path).join(", ")}`,
+      `[Cloudflare] Purged tags [${tags.join(", ")}] for: ${entries.map((e) => e.path).join(", ")}`,
     );
-  }
+  } catch (err) {
+    console.error(`[Cloudflare] Tag purge failed:`, err.message);
 
-  if (failed.length) {
-    failed.forEach((r) => {
-      console.error(`[Cloudflare] Purge strategy failed:`, r.reason?.message);
-    });
+    const files = [
+      ...new Set(
+        entries.map((entry) => {
+          const normalized = entry.path.startsWith("/")
+            ? entry.path
+            : `/${entry.path}`;
+          return `${config.apiOrigin}${normalized}`;
+        }),
+      ),
+    ];
+
+    try {
+      await purgeByType(config, { files });
+      console.log(`[Cloudflare] Fallback file purge succeeded for: ${files.join(", ")}`);
+    } catch (fallbackErr) {
+      console.error(`[Cloudflare] File purge fallback failed:`, fallbackErr.message);
+    }
   }
 };
 

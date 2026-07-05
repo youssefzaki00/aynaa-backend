@@ -1,8 +1,9 @@
 const { getRedisClient, isRedisReady } = require("../config/redis");
 
 /**
- * Global cache middleware for authenticated GET endpoints.
+ * Global Redis cache middleware for authenticated GET endpoints.
  * Only caches when there are zero query parameters (full-list requests).
+ * Responses are never stored at CDN/browser (see apiCacheHeaders).
  */
 const cacheResponse = (cacheKey, ttlSeconds) => {
   return async (req, res, next) => {

@@ -11,6 +11,7 @@ const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 const connectDB = require("./config/db");
 const { connectRedis, disconnectRedis } = require("./config/redis");
+const { refreshListCachesOnDeploy } = require("./utils/cacheInvalidate");
 const { globalLimiter } = require("./middleware/rateLimiter");
 const errorHandler = require("./middleware/errorHandler");
 const routes = require("./routes");
@@ -304,6 +305,7 @@ function startWorker() {
   connectDB()
     .then(async () => {
       await connectRedis();
+      await refreshListCachesOnDeploy();
 
       // 2. لما تنجح، شغل السيرفر
       const server = app.listen(PORT, () => {

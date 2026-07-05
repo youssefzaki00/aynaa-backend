@@ -10,8 +10,7 @@ const {
 const { protect, protectLight } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
 const { cacheResponse } = require("../middleware/cache");
-const { edgeCache } = require("../middleware/edgeCache");
-const { CACHE_KEYS, CACHE_TTL_SECONDS, LIST_CACHES } = require("../constants/cacheKeys");
+const { CACHE_KEYS, CACHE_TTL_SECONDS } = require("../constants/cacheKeys");
 const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 
@@ -66,7 +65,7 @@ const upload = multer({ dest: "uploads/" });
  *                       type: object
  *       401: { description: "Unauthorized" }
  */
-router.get("/", protectLight, edgeCache(undefined, LIST_CACHES.SITES.tag), cacheResponse(CACHE_KEYS.SITES, CACHE_TTL_SECONDS), getSites);
+router.get("/", protectLight, cacheResponse(CACHE_KEYS.SITES, CACHE_TTL_SECONDS), getSites);
 
 /**
  * @swagger

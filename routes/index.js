@@ -1,5 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const { apiCacheHeaders } = require('../middleware/apiCacheHeaders');
+
+router.use(apiCacheHeaders);
 
 // Import route modules
 const deviceRoutes = require('./device.routes');

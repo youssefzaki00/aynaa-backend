@@ -33,4 +33,45 @@ const invalidateListCache = async (...names) => {
   ]);
 };
 
-module.exports = { invalidateCache, invalidateListCache };
+/**
+ * Clear all list Redis keys. Used on deploy to drop stale snapshots.
+ */
+const clearAllListRedisKeys = async () => {
+  const keys = Object.values(LIST_CACHES).map((entry) => entry.redis);
+  await invalidateCache(...keys);
+};
+
+/**
+ * One-time deploy warmup: clear Redis + purge Cloudflare (single worker via lock).
+ */
+const refreshListCachesOnDeploy = async () => {
+  const entries = Object.values(LIST_CACHES);
+  await clearAllListRedisKeys();
+
+  if (!isRedisReady()) {
+    await purgeCloudflareCache(entries);
+    return;
+  }
+
+  try {
+    const redis = getRedisClient();
+    const acquired = await redis.set("cache:deploy-purge-lock", "1", {
+      NX: true,
+      EX: 300,
+    });
+
+    if (acquired) {
+      await purgeCloudflareCache(entries);
+      console.log("[Cache] Deploy warmup: cleared Redis list keys and purged CDN");
+    }
+  } catch (err) {
+    console.error("[Cache] Deploy warmup failed:", err.message);
+  }
+};
+
+module.exports = {
+  invalidateCache,
+  invalidateListCache,
+  clearAllListRedisKeys,
+  refreshListCachesOnDeploy,
+};
