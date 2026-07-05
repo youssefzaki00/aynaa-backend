@@ -3,8 +3,7 @@ const Keyword = require('../models/Keyword');
 const { sendSuccess, sendError } = require('../utils/response');
 const { executePaginatedQuery } = require('../utils/pagination');
 const { validateRequiredFields } = require('../utils/validation');
-const { invalidateCache } = require('../utils/cacheInvalidate');
-const { CACHE_KEYS } = require('../constants/cacheKeys');
+const { invalidateListCache } = require('../utils/cacheInvalidate');
 
 /**
  * Create a new category
@@ -26,7 +25,7 @@ const createCategory = async (req, res, next) => {
       isActive: true,
     });
 
-    await invalidateCache(CACHE_KEYS.KEYWORDS, CACHE_KEYS.SITES);
+    await invalidateListCache('KEYWORDS', 'SITES');
 
     sendSuccess(res, 201, 'Category created successfully', {
       category,
@@ -112,7 +111,7 @@ const updateCategory = async (req, res, next) => {
 
     await category.save();
 
-    await invalidateCache(CACHE_KEYS.KEYWORDS, CACHE_KEYS.SITES);
+    await invalidateListCache('KEYWORDS', 'SITES');
 
     sendSuccess(res, 200, 'Category updated successfully', {
       category,
@@ -150,7 +149,7 @@ const deleteCategory = async (req, res, next) => {
 
     await Category.findOneAndDelete({ _id: id });
 
-    await invalidateCache(CACHE_KEYS.KEYWORDS, CACHE_KEYS.SITES);
+    await invalidateListCache('KEYWORDS', 'SITES');
 
     sendSuccess(res, 200, 'Category deleted successfully', {
       deletedCategory: {
@@ -180,7 +179,7 @@ const toggleCategory = async (req, res, next) => {
     category.isActive = !category.isActive;
     await category.save();
 
-    await invalidateCache(CACHE_KEYS.KEYWORDS, CACHE_KEYS.SITES);
+    await invalidateListCache('KEYWORDS', 'SITES');
 
     sendSuccess(res, 200, 'Category toggled successfully', {
       category,

@@ -3,8 +3,7 @@ const Category = require('../models/Category');
 const { sendSuccess, sendError } = require('../utils/response');
 const { executePaginatedQuery } = require('../utils/pagination');
 const { normalizeWord, validateRequiredFields } = require('../utils/validation');
-const { invalidateCache } = require('../utils/cacheInvalidate');
-const { CACHE_KEYS } = require('../constants/cacheKeys');
+const { invalidateListCache } = require('../utils/cacheInvalidate');
 
 /**
  * Create a new keyword
@@ -39,7 +38,7 @@ const createKeyword = async (req, res, next) => {
     // Populate category for response
     await keyword.populate('category');
 
-    await invalidateCache(CACHE_KEYS.KEYWORDS);
+    await invalidateListCache('KEYWORDS');
 
     sendSuccess(res, 201, 'Keyword created successfully', {
       keyword: {
@@ -148,7 +147,7 @@ const updateKeyword = async (req, res, next) => {
     await keyword.save();
     await keyword.populate('category');
 
-    await invalidateCache(CACHE_KEYS.KEYWORDS);
+    await invalidateListCache('KEYWORDS');
 
     const categoryData = keyword.category
       ? {
@@ -185,7 +184,7 @@ const deleteKeyword = async (req, res, next) => {
       { new: true }
     );
 
-    await invalidateCache(CACHE_KEYS.KEYWORDS);
+    await invalidateListCache('KEYWORDS');
 
     // delete method is idempotent — return 200 even if already deleted
     sendSuccess(res, 200, 'Keyword deleted successfully', {
@@ -218,7 +217,7 @@ const toggleKeyword = async (req, res, next) => {
     await keyword.save();
     await keyword.populate('category');
 
-    await invalidateCache(CACHE_KEYS.KEYWORDS);
+    await invalidateListCache('KEYWORDS');
 
     const categoryData = keyword.category
       ? {
