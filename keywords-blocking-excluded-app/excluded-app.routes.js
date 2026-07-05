@@ -8,6 +8,7 @@ const {
 } = require("./excluded-app.controller");
 const { protect } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
+const stripVaryHeader = require("../middleware/stripVary");
 
 /**
  * @swagger
@@ -94,7 +95,7 @@ router.post("/", protect, adminOnly, createExcludedAppController);
  *       401: { description: "Unauthorized" }
  *       403: { description: "Admin access required" }
  */
-router.get("/", protect, getExcludedAppsController);
+router.get("/", protect, stripVaryHeader, getExcludedAppsController);
 
 /**
  * @swagger

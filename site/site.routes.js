@@ -9,6 +9,7 @@ const {
 } = require("./site.controller");
 const { protect } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
+const stripVaryHeader = require("../middleware/stripVary");
 const multer = require("multer");
 const upload = multer({ dest: "uploads/" });
 
@@ -59,7 +60,7 @@ const upload = multer({ dest: "uploads/" });
  *                       type: object
  *       401: { description: "Unauthorized" }
  */
-router.get("/", getSites);
+router.get("/", stripVaryHeader, getSites);
 
 /**
  * @swagger

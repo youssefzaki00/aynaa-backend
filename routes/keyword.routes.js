@@ -9,6 +9,7 @@ const {
 } = require("../controllers/keywordController");
 const { protect } = require("../middleware/auth");
 const adminOnly = require("../middleware/adminOnly");
+const stripVaryHeader = require("../middleware/stripVary");
 
 /**
  * @swagger
@@ -105,7 +106,7 @@ router.post("/", protect, adminOnly, createKeyword);
  *                         pages: { type: integer }
  *       401: { description: "Unauthorized" }
  */
-router.get("/", protect, getKeywords);
+router.get("/", protect, stripVaryHeader, getKeywords);
 
 /**
  * @swagger
