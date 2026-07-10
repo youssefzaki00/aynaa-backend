@@ -1,0 +1,109 @@
+ApiSuccess:
+  type: object
+  required: [success, message]
+  properties:
+    success:
+      type: boolean
+      example: true
+    message:
+      type: string
+    data:
+      type: object
+
+ApiError:
+  type: object
+  required: [success, message]
+  properties:
+    success:
+      type: boolean
+      example: false
+    message:
+      type: string
+
+AuthTokenResponse:
+  type: object
+  properties:
+    token:
+      type: string
+    user:
+      $ref: '#/components/schemas/User'
+
+User:
+  type: object
+  properties:
+    id: { type: string }
+    deviceId: { type: string }
+    role: { type: string, enum: [user, admin] }
+    username: { type: string }
+    createdAt: { type: string, format: date-time }
+    updatedAt: { type: string, format: date-time }
+
+Category:
+  type: object
+  properties:
+    id: { type: string }
+    name: { type: string }
+    displayName: { type: string }
+    description: { type: string }
+    isActive: { type: boolean }
+    createdAt: { type: string, format: date-time }
+    updatedAt: { type: string, format: date-time }
+
+Keyword:
+  type: object
+  properties:
+    id: { type: string }
+    word: { type: string }
+    category: { $ref: '#/components/schemas/Category' }
+    isEnabled: { type: boolean }
+    createdAt: { type: string, format: date-time }
+    updatedAt: { type: string, format: date-time }
+
+Site:
+  type: object
+  properties:
+    id: { type: string }
+    url: { type: string, format: uri }
+    isActive: { type: boolean }
+    category: { $ref: '#/components/schemas/Category' }
+    createdAt: { type: string, format: date-time }
+    updatedAt: { type: string, format: date-time }
+
+App:
+  type: object
+  properties:
+    id: { type: string }
+    packageName: { type: string }
+    isActive: { type: boolean }
+    isDeleted: { type: boolean }
+    createdAt: { type: string, format: date-time }
+    updatedAt: { type: string, format: date-time }
+
+ExcludedApp:
+  type: object
+  properties:
+    id: { type: string }
+    packageName: { type: string }
+    isActive: { type: boolean }
+    createdAt: { type: string, format: date-time }
+    updatedAt: { type: string, format: date-time }
+
+Request:
+  type: object
+  properties:
+    id: { type: string }
+    userId: { type: string }
+    type: { type: string, enum: [UNINSTALL] }
+    status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+    message: { type: string }
+    details: { type: object }
+    createdAt: { type: string, format: date-time }
+    updatedAt: { type: string, format: date-time }
+
+PaginationMeta:
+  type: object
+  properties:
+    page: { type: integer }
+    limit: { type: integer }
+    total: { type: integer }
+    pages: { type: integer }

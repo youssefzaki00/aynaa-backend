@@ -1,0 +1,87 @@
+/apps:
+  get:
+    tags: [Apps]
+    summary: List apps
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+    responses:
+      '200':
+        description: Apps retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        apps:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/App'
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+  post:
+    tags: [Apps]
+    summary: Create blocked app
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [packageName]
+            properties:
+              packageName:
+                type: string
+    responses:
+      '201':
+        $ref: '#/components/responses/Success'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/apps/{id}:
+  patch:
+    tags: [Apps]
+    summary: Update app
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              packageName:
+                type: string
+              isActive:
+                type: boolean
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'
+
+  delete:
+    tags: [Apps]
+    summary: Soft-delete app
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'

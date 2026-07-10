@@ -1,0 +1,89 @@
+/excluded-apps:
+  get:
+    tags: [Excluded Apps]
+    summary: List excluded apps
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+    responses:
+      '200':
+        description: Excluded apps retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        excludedApps:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/ExcludedApp'
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+  post:
+    tags: [Excluded Apps]
+    summary: Create excluded app
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [packageName]
+            properties:
+              packageName:
+                type: string
+    responses:
+      '201':
+        $ref: '#/components/responses/Success'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/excluded-apps/{id}:
+  patch:
+    tags: [Excluded Apps]
+    summary: Update excluded app
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              packageName:
+                type: string
+              isActive:
+                type: boolean
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'
+
+  delete:
+    tags: [Excluded Apps]
+    summary: Delete excluded app
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'

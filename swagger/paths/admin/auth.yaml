@@ -1,0 +1,55 @@
+/auth/admin/login:
+  post:
+    tags: [Authentication]
+    summary: Login admin
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [username, password]
+            properties:
+              username:
+                type: string
+              password:
+                type: string
+                format: password
+    responses:
+      '200':
+        description: Login successful
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/AuthTokenResponse'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/auth/me:
+  get:
+    tags: [Authentication]
+    summary: Get current admin profile
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Profile retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        user:
+                          $ref: '#/components/schemas/User'
+      '401':
+        $ref: '#/components/responses/Unauthorized'

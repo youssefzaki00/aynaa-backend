@@ -1,0 +1,34 @@
+Success:
+  description: Operation succeeded
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/ApiSuccess'
+
+Unauthorized:
+  description: Missing or invalid JWT
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/ApiError'
+
+Forbidden:
+  description: Insufficient permissions
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/ApiError'
+
+NotFound:
+  description: Resource not found
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/ApiError'
+
+BadRequest:
+  description: Invalid input
+  content:
+    application/json:
+      schema:
+        $ref: '#/components/schemas/ApiError'

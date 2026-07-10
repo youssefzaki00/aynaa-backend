@@ -8,8 +8,8 @@ const express = require("express");
 const helmet = require("helmet");
 const cors = require("cors");
 const morgan = require("morgan");
-const swaggerJsdoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
+const { loadMobileSwaggerSpec, loadDashboardSwaggerSpec } = require("./config/swagger");
 const connectDB = require("./config/db");
 const { connectRedis, disconnectRedis } = require("./config/redis");
 const { refreshListCachesOnDeploy } = require("./utils/cacheInvalidate");
@@ -21,226 +21,19 @@ const sanitizeRequest = require("./middleware/sanitization"); // نقلت الا
 // Initialize Express app
 const app = express();
 
-// Swagger configuration
-const swaggerOptions = {
-  definition: {
-    openapi: "3.0.0",
-    info: {
-      title: "aynaa Backend API",
-      version: "1.0.2",
-      description:
-        "Production-ready REST API for aynaa - Parental Control & Content Filtering Android App",
-    },
-    servers: [
-      {
-        url: "http://localhost:5000/api/v1",
-        description: "Development server",
-      },
-      {
-        url: "https://api.aynaa.org/api/v1",
-        description: "Production server",
-      },
-    ],
-    components: {
-      securitySchemes: {
-        ApiKeyAuth: {
-          type: "apiKey",
-          in: "header",
-          name: "x-api-key",
-          description: "API key for client authentication",
-        },
-        AdminKeyAuth: {
-          type: "apiKey",
-          in: "header",
-          name: "x-admin-key",
-          description: "Admin API key for administrative operations",
-        },
-        bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-          description: "JWT token for authentication",
-        },
-      },
-      schemas: {
-        User: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              description: "User ID",
-            },
-            deviceId: {
-              type: "string",
-              description: "Device identifier",
-            },
-            role: {
-              type: "string",
-              enum: ["user", "admin"],
-              description: "User role",
-            },
-            username: {
-              type: "string",
-              description: "Username",
-            },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              description: "Account creation timestamp",
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              description: "Last update timestamp",
-            },
-          },
-        },
-        Keyword: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              description: "Keyword ID",
-            },
-            word: {
-              type: "string",
-              description: "The keyword text",
-            },
-            category: {
-              $ref: "#/components/schemas/Category",
-              description: "Category object containing category details",
-            },
-            isEnabled: {
-              type: "boolean",
-              description: "Whether the keyword is active",
-              default: true,
-            },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              description: "Creation timestamp",
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              description: "Last update timestamp",
-            },
-          },
-        },
-        Category: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              description: "Category ID",
-            },
-            name: {
-              type: "string",
-              description: "Category name (uppercase)",
-            },
-            displayName: {
-              type: "string",
-              description: "Human-readable category name",
-            },
-            description: {
-              type: "string",
-              description: "Category description",
-            },
-            isActive: {
-              type: "boolean",
-              description: "Whether the category is active",
-              default: true,
-            },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              description: "Creation timestamp",
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              description: "Last update timestamp",
-            },
-          },
-        },
-        Site: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              description: "Site ID",
-            },
-            url: {
-              type: "string",
-              format: "uri",
-              description: "Site URL",
-            },
-            isActive: {
-              type: "boolean",
-              description: "Whether the site is active",
-              default: true,
-            },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              description: "Creation timestamp",
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              description: "Last update timestamp",
-            },
-          },
-        },
-        ExcludedApp: {
-          type: "object",
-          properties: {
-            id: {
-              type: "string",
-              description: "Excluded app ID",
-            },
-            packageName: {
-              type: "string",
-              description: "App package name to exclude from filtering",
-            },
-            isActive: {
-              type: "boolean",
-              description: "Whether the exclusion is active",
-              default: true,
-            },
-            createdAt: {
-              type: "string",
-              format: "date-time",
-              description: "Creation timestamp",
-            },
-            updatedAt: {
-              type: "string",
-              format: "date-time",
-              description: "Last update timestamp",
-            },
-          },
-        },
-      },
-    },
-    security: [
-      {
-        ApiKeyAuth: [],
-      },
-    ],
-  },
-  // Resolve from __dirname (not cwd). Use explicit site.routes.js — globbing site/*.js
-  // can miss files on some VPS setups; removed duplicate routes/site.routes.js from scan.
- apis: [
-  "./routes/*.js",
-  "./site/site.routes.js",
-  "./keywords-blocking-excluded-app/excluded-app.routes.js",
-],
+// Swagger — reload YAML on each request so doc changes apply without restart
+const mountSwaggerUi = (mountPath, loadSpec) => {
+  app.use(mountPath, swaggerUi.serve);
+  app.get(mountPath, (req, res, next) => {
+    swaggerUi.setup(loadSpec())(req, res, next);
+  });
+  app.get(`${mountPath}/swagger.json`, (req, res) => {
+    res.json(loadSpec());
+  });
 };
 
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
-
-// Swagger UI route
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+mountSwaggerUi("/api-docs", loadMobileSwaggerSpec);
+mountSwaggerUi("/api-docs-dashboard", loadDashboardSwaggerSpec);
 
 const corsOptions = {
   origin: [
@@ -281,7 +74,10 @@ app.get("/", (req, res) => {
     message: "Welcome to aynaa API",
     version: "1.0.2",
     healthCheck: "/api/v1/health",
-    documentation: "/api-docs",
+    documentation: {
+      mobile: "/api-docs",
+      dashboard: "/api-docs-dashboard",
+    },
   });
 });
 

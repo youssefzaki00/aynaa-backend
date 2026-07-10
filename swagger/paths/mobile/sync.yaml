@@ -1,0 +1,163 @@
+/keywords:
+  get:
+    tags: [Sync]
+    summary: List keywords
+    description: Returns enabled keywords. Use `lastSync` for incremental updates.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/LastSyncParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+      - name: categoryId
+        in: query
+        schema:
+          type: string
+      - name: isEnabled
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Keywords retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        keywords:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/Keyword'
+                        deletedKeywordIds:
+                          type: array
+                          items:
+                            type: string
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/sites:
+  get:
+    tags: [Sync]
+    summary: List blocked sites
+    description: Returns active sites. Use `lastSync` for incremental updates.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/LastSyncParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+      - name: isActive
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Sites retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        sites:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/Site'
+                        deletedSiteIds:
+                          type: array
+                          items:
+                            type: string
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/apps:
+  get:
+    tags: [Sync]
+    summary: List blocked apps
+    description: Returns active apps. Use `lastSync` for incremental updates.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/LastSyncParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+    responses:
+      '200':
+        description: Apps retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        apps:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/App'
+                        deletedIds:
+                          type: array
+                          items:
+                            type: string
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/excluded-apps:
+  get:
+    tags: [Sync]
+    summary: List keyword-blocking excluded apps
+    description: Apps excluded from keyword blocking. Use `lastSync` for incremental updates.
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/LastSyncParam'
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+    responses:
+      '200':
+        description: Excluded apps retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        excludedApps:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/ExcludedApp'
+                        deletedIds:
+                          type: array
+                          items:
+                            type: string
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'

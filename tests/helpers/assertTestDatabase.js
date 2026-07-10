@@ -24,7 +24,7 @@ const assertTestDatabase = () => {
 
   if (!uri) {
     throw new Error(
-      "Tests require MONGODB_URI. Copy .env.test.example to .env.test and use a dedicated test database (e.g. aynaa_test).",
+      "Tests require MONGODB_URI in .env (use a dedicated test database, e.g. aynaa_test).",
     );
   }
 
@@ -47,9 +47,8 @@ const assertTestDatabase = () => {
       "Tests must use a separate database: aynaa_test (or any name containing 'test')",
       "",
       "Fix:",
-      "  1. Ensure .env.test exists with MONGODB_URI ending in /aynaa_test",
+      "  1. Set MONGODB_URI in .env to a test database (e.g. /aynaa_test)",
       "  2. Run: npm test",
-      "  3. Never run jest while loading the production .env file",
     ].join("\n"),
   );
 };

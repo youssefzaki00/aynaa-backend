@@ -1,0 +1,83 @@
+/auth/signup:
+  post:
+    tags: [Authentication]
+    summary: Register mobile user
+    description: Creates a user account bound to a unique `deviceId`.
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [deviceId]
+            properties:
+              deviceId:
+                type: string
+                example: android-abc123
+    responses:
+      '201':
+        description: User created
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/AuthTokenResponse'
+      '409':
+        $ref: '#/components/responses/BadRequest'
+
+/auth/user/login:
+  post:
+    tags: [Authentication]
+    summary: Login mobile user
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [deviceId]
+            properties:
+              deviceId:
+                type: string
+    responses:
+      '200':
+        description: Login successful
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '#/components/schemas/AuthTokenResponse'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/auth/me:
+  get:
+    tags: [Authentication]
+    summary: Get current user profile
+    security:
+      - bearerAuth: []
+    responses:
+      '200':
+        description: Profile retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        user:
+                          $ref: '#/components/schemas/User'
+      '401':
+        $ref: '#/components/responses/Unauthorized'

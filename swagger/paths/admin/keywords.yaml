@@ -1,0 +1,111 @@
+/keywords:
+  get:
+    tags: [Keywords]
+    summary: List keywords
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+      - name: categoryId
+        in: query
+        schema:
+          type: string
+      - name: isEnabled
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Keywords retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        keywords:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/Keyword'
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+  post:
+    tags: [Keywords]
+    summary: Create keyword
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [word, categoryId]
+            properties:
+              word:
+                type: string
+              categoryId:
+                type: string
+    responses:
+      '201':
+        $ref: '#/components/responses/Success'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/keywords/{id}:
+  patch:
+    tags: [Keywords]
+    summary: Update keyword
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              word:
+                type: string
+              categoryId:
+                type: string
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'
+
+  delete:
+    tags: [Keywords]
+    summary: Soft-delete keyword
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+
+/keywords/{id}/toggle:
+  patch:
+    tags: [Keywords]
+    summary: Toggle keyword enabled status
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'

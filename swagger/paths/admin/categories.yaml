@@ -1,0 +1,128 @@
+/admin/categories:
+  post:
+    tags: [Categories]
+    summary: Create category
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [name, displayName]
+            properties:
+              name:
+                type: string
+              displayName:
+                type: string
+              description:
+                type: string
+    responses:
+      '201':
+        $ref: '#/components/responses/Success'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+  get:
+    tags: [Categories]
+    summary: List categories
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: isActive
+        in: query
+        schema:
+          type: boolean
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+    responses:
+      '200':
+        description: Categories retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        categories:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/Category'
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/admin/categories/{id}:
+  get:
+    tags: [Categories]
+    summary: Get category by ID
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'
+
+  patch:
+    tags: [Categories]
+    summary: Update category
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+              displayName:
+                type: string
+              description:
+                type: string
+              isActive:
+                type: boolean
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'
+
+  delete:
+    tags: [Categories]
+    summary: Delete category
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'
+
+/admin/categories/{id}/toggle:
+  patch:
+    tags: [Categories]
+    summary: Toggle category active status
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'

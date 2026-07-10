@@ -35,10 +35,6 @@ const cleanupTestData = async () => {
     const GlobalWhitelist = require("../../models/GlobalWhitelist");
     deletes.push(GlobalWhitelist.deleteMany({ _id: { $in: buckets.whitelist } }));
   }
-  if (buckets.suggestions.length) {
-    const Suggestion = require("../../models/Suggestion");
-    deletes.push(Suggestion.deleteMany({ _id: { $in: buckets.suggestions } }));
-  }
   if (buckets.devices.length) {
     const Device = require("../../models/Device");
     deletes.push(Device.deleteMany({ _id: { $in: buckets.devices } }));

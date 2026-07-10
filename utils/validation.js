@@ -6,8 +6,6 @@
 const { 
   REVIEW_STATUSES, 
   REQUEST_STATUSES,
-  SUGGESTION_TYPES,
-  CUSTOMIZATION_TYPES,
   VALIDATION_LIMITS 
 } = require('../config/constant');
 
@@ -27,24 +25,6 @@ const isValidReviewStatus = (status) => {
  */
 const isValidRequestStatus = (status) => {
   return REQUEST_STATUSES.includes(status);
-};
-
-/**
- * Validate suggestion type
- * @param {String} type - Type to validate
- * @returns {Boolean} True if valid
- */
-const isValidSuggestionType = (type) => {
-  return SUGGESTION_TYPES.includes(type);
-};
-
-/**
- * Validate customization type
- * @param {String} type - Type to validate
- * @returns {Boolean} True if valid
- */
-const isValidCustomizationType = (type) => {
-  return CUSTOMIZATION_TYPES.includes(type);
 };
 
 /**
@@ -92,8 +72,6 @@ const validateRequiredFields = (data, requiredFields) => {
 module.exports = {
   isValidReviewStatus,
   isValidRequestStatus,
-  isValidSuggestionType,
-  isValidCustomizationType,
   canBeReviewed,
   isValidLength,
   normalizeWord,

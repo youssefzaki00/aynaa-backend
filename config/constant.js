@@ -5,17 +5,6 @@ const { JWT_SECRET, JWT_EXPIRE } = require("./env");
  * Centralized location for all enums, constants, and magic values
  */
 
-// Suggestion Types
-const SUGGESTION_TYPES = ["BLOCK_WORD", "UNBLOCK_WORD", "WHITELIST_APP"];
-
-// Customization Request Types
-const CUSTOMIZATION_TYPES = [
-  "CUSTOM_BLOCK_KEYWORD",
-  "CUSTOM_ALLOW_KEYWORD",
-  "CUSTOM_WHITELIST_APP",
-  "CUSTOM_BLACKLIST_APP",
-];
-
 // Review Statuses
 const REVIEW_STATUSES = ["APPROVED", "REJECTED"];
 
@@ -48,8 +37,6 @@ const UserRoles = {
 };
 
 module.exports = {
-  SUGGESTION_TYPES,
-  CUSTOMIZATION_TYPES,
   REVIEW_STATUSES,
   REQUEST_STATUSES,
   DEFAULT_PAGINATION,

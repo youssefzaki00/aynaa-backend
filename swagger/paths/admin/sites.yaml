@@ -1,0 +1,125 @@
+/sites:
+  get:
+    tags: [Sites]
+    summary: List sites
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+      - name: isActive
+        in: query
+        schema:
+          type: boolean
+    responses:
+      '200':
+        description: Sites retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        sites:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/Site'
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+  post:
+    tags: [Sites]
+    summary: Create site
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [url, categoryId]
+            properties:
+              url:
+                type: string
+                format: uri
+              categoryId:
+                type: string
+              isActive:
+                type: boolean
+    responses:
+      '201':
+        $ref: '#/components/responses/Success'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/sites/upload:
+  post:
+    tags: [Sites]
+    summary: Bulk import sites from file
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [file, categoryId]
+            properties:
+              file:
+                type: string
+                format: binary
+              categoryId:
+                type: string
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/sites/{id}:
+  patch:
+    tags: [Sites]
+    summary: Update site
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              url:
+                type: string
+              categoryId:
+                type: string
+              isActive:
+                type: boolean
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'
+
+  delete:
+    tags: [Sites]
+    summary: Delete site
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '404':
+        $ref: '#/components/responses/NotFound'

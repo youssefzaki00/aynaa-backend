@@ -61,9 +61,7 @@ const env = {
     true,
   ),
 
-  // Auth & API keys
-  API_SECRET_KEY: process.env.API_SECRET_KEY,
-  ADMIN_API_KEY: process.env.ADMIN_API_KEY,
+  // Auth
   JWT_SECRET: process.env.JWT_SECRET,
   JWT_EXPIRE: process.env.JWT_EXPIRE || "30d",
 
@@ -85,16 +83,6 @@ const env = {
   CLOUDFLARE_CDN_ORIGIN:
     read("CLOUDFLARE_CDN_ORIGIN", ["CLOUDFLARE_API_ORIGIN"]) ||
     `https://${CLOUDFLARE_CDN_HOST}`,
-
-  // Cloudflare R2 storage
-  R2_ACCOUNT_ID: read("R2_ACCOUNT_ID", [
-    "cloudflare_account_id",
-    "CLOUDFLARE_ACCOUNT_ID",
-  ]),
-  R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
-  R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
-  R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
-  R2_PUBLIC_URL: process.env.R2_PUBLIC_URL,
 };
 
 module.exports = env;

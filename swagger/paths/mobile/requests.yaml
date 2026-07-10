@@ -1,0 +1,122 @@
+/requests:
+  post:
+    tags: [Requests]
+    summary: Create request
+    security:
+      - bearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [type]
+            properties:
+              type:
+                type: string
+                enum: [UNINSTALL]
+              message:
+                type: string
+              details:
+                type: object
+    responses:
+      '201':
+        description: Request created
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        request:
+                          $ref: '#/components/schemas/Request'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+  get:
+    tags: [Requests]
+    summary: List own requests
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum: [UNINSTALL]
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+    responses:
+      '200':
+        description: Requests retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        requests:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/Request'
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/requests/{id}:
+  patch:
+    tags: [Requests]
+    summary: Update own request
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [PENDING, APPROVED, REJECTED]
+              message:
+                type: string
+              details:
+                type: object
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+      '403':
+        $ref: '#/components/responses/Forbidden'
+      '404':
+        $ref: '#/components/responses/NotFound'
+
+  delete:
+    tags: [Requests]
+    summary: Delete own request
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+      '403':
+        $ref: '#/components/responses/Forbidden'
+      '404':
+        $ref: '#/components/responses/NotFound'

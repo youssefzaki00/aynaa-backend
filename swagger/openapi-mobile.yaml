@@ -1,0 +1,32 @@
+openapi: 3.0.0
+
+info:
+  title: aynaa Mobile API
+  version: 1.0.4
+  description: |
+    REST API for the aynaa Android mobile app.
+
+    ## Authentication
+    1. `POST /auth/signup` — register with `deviceId`
+    2. `POST /auth/user/login` — obtain JWT
+    3. Send `Authorization: Bearer <token>` on protected routes
+
+    ## Content sync
+    List endpoints support incremental sync via `lastSync` (ISO 8601).
+    Responses include changed items plus `deleted*Ids` tombstones.
+
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Development
+  - url: https://api.aynaa.org/api/v1
+    description: Production
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT from signup or user login
+
+paths: {}

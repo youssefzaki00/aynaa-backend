@@ -1,4 +1,5 @@
 const { sendSuccess, sendError } = require("../utils/response");
+const { UserRoles } = require("../config/constant");
 const {
   validateRequiredFields,
   isValidRequestStatus,
@@ -59,17 +60,19 @@ const getRequestsController = async (req, res, next) => {
   try {
     const { type, userId, search, page = 1, limit = 20 } = req.query;
     const currentUser = req.user;
-    const requestedUserId = userId || currentUser.id;
+    const isAdmin = currentUser.role === UserRoles.ADMIN;
 
-    if (userId && userId !== currentUser.id && currentUser.role != "admin") {
+    if (userId && userId !== currentUser.id && !isAdmin) {
       return sendError(res, 403, "Can't access this resource");
     }
+
+    const filterUserId = isAdmin ? userId : currentUser.id;
 
     const pageNumber = Math.max(parseInt(page, 10) || 1, 1);
     const limitNumber = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
 
     const { requests, pagination } = await getRequests({
-      userId: requestedUserId,
+      userId: filterUserId,
       type,
       search,
       page: pageNumber,

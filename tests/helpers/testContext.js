@@ -11,7 +11,6 @@ const buckets = {
   excludedApps: [],
   requests: [],
   whitelist: [],
-  suggestions: [],
   devices: [],
 };
 

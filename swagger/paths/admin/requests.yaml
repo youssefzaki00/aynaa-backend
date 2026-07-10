@@ -1,0 +1,72 @@
+/requests:
+  get:
+    tags: [Requests]
+    summary: List all requests
+    description: Admins see all requests; supports filtering by user, type, and search.
+    security:
+      - bearerAuth: []
+    parameters:
+      - name: type
+        in: query
+        schema:
+          type: string
+          enum: [UNINSTALL]
+      - name: userId
+        in: query
+        schema:
+          type: string
+      - $ref: '#/components/parameters/SearchParam'
+      - $ref: '#/components/parameters/PageParam'
+      - $ref: '#/components/parameters/LimitParam'
+    responses:
+      '200':
+        description: Requests retrieved
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ApiSuccess'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        requests:
+                          type: array
+                          items:
+                            $ref: '#/components/schemas/Request'
+                        pagination:
+                          $ref: '#/components/schemas/PaginationMeta'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+
+/requests/{id}:
+  patch:
+    tags: [Requests]
+    summary: Review / update request
+    security:
+      - bearerAuth: []
+    parameters:
+      - $ref: '#/components/parameters/IdPathParam'
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: [PENDING, APPROVED, REJECTED]
+              message:
+                type: string
+              details:
+                type: object
+    responses:
+      '200':
+        $ref: '#/components/responses/Success'
+      '401':
+        $ref: '#/components/responses/Unauthorized'
+      '403':
+        $ref: '#/components/responses/Forbidden'
+      '404':
+        $ref: '#/components/responses/NotFound'

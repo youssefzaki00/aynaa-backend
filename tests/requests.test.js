@@ -4,12 +4,13 @@ const app = require('../server');
 const User = require('../models/User');
 const RequestModel = require('../models/Request');
 const connectDB = require('../config/db');
-const { createTestUserToken } = require('./helpers/testAuth');
+const { createTestAdminToken, createTestUserToken } = require('./helpers/testAuth');
 const { runId, track } = require('./helpers/testContext');
 const { UserRoles } = require('../config/constant');
 
 describe('Requests API', () => {
   let userToken;
+  let adminToken;
   let otherToken;
   let userId;
   let otherUserId;
@@ -23,6 +24,9 @@ describe('Requests API', () => {
     userToken = mainUser.token;
     userId = mainUser.userId.toString();
 
+    const admin = await createTestAdminToken();
+    adminToken = admin.token;
+
     const otherUser = await User.create({
       deviceId: `other-user-${runId}`,
       role: UserRoles.USER,
@@ -33,6 +37,14 @@ describe('Requests API', () => {
       { id: otherUserId, role: UserRoles.USER },
       process.env.JWT_SECRET,
     );
+
+    const otherRequest = await RequestModel.create({
+      userId: otherUserId,
+      type: 'UNINSTALL',
+      message: `other ${runId}`,
+    });
+    otherRequestId = otherRequest._id.toString();
+    track('requests', otherRequest._id);
   });
 
   describe('POST /api/v1/requests', () => {
@@ -87,19 +99,34 @@ describe('Requests API', () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.data.pagination.limit).toBe(1);
     });
+
+    test('should return all requests for admin', async () => {
+      const res = await request(app)
+        .get('/api/v1/requests')
+        .query({ search: runId })
+        .auth(adminToken, { type: 'bearer' });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.requests.length).toBeGreaterThanOrEqual(2);
+      const userIds = res.body.data.requests.map((item) => item.userId);
+      expect(userIds).toEqual(expect.arrayContaining([userId, otherUserId]));
+    });
+
+    test('should let admin filter by userId', async () => {
+      const res = await request(app)
+        .get('/api/v1/requests')
+        .query({ userId: otherUserId, search: runId })
+        .auth(adminToken, { type: 'bearer' });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.requests.length).toBeGreaterThan(0);
+      expect(
+        res.body.data.requests.every((item) => item.userId === otherUserId),
+      ).toBe(true);
+    });
   });
 
   describe('PATCH /api/v1/requests/:id', () => {
-    beforeAll(async () => {
-      const otherRequest = await RequestModel.create({
-        userId: otherUserId,
-        type: 'UNINSTALL',
-        message: `other ${runId}`,
-      });
-      otherRequestId = otherRequest._id.toString();
-      track('requests', otherRequest._id);
-    });
-
     test('should update own request', async () => {
       const res = await request(app)
         .patch(`/api/v1/requests/${requestId}`)
@@ -120,10 +147,10 @@ describe('Requests API', () => {
     });
   });
 
-  describe('DELETE /api/v1/request/:id', () => {
-    test('should delete own request via singular route', async () => {
+  describe('DELETE /api/v1/requests/:id', () => {
+    test('should delete own request', async () => {
       const res = await request(app)
-        .delete(`/api/v1/request/${requestId}`)
+        .delete(`/api/v1/requests/${requestId}`)
         .auth(userToken, { type: 'bearer' });
 
       expect(res.statusCode).toBe(200);
@@ -132,7 +159,7 @@ describe('Requests API', () => {
 
     test('should block deleting another user request', async () => {
       const res = await request(app)
-        .delete(`/api/v1/request/${otherRequestId}`)
+        .delete(`/api/v1/requests/${otherRequestId}`)
         .auth(userToken, { type: 'bearer' });
 
       expect(res.statusCode).toBe(403);

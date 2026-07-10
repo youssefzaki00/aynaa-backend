@@ -1,0 +1,48 @@
+openapi: 3.0.0
+
+info:
+  title: aynaa Admin Dashboard API
+  version: 1.0.4
+  description: |
+    REST API for the aynaa admin dashboard.
+
+    ## Authentication
+    1. `POST /auth/admin/login` — obtain admin JWT
+    2. Send `Authorization: Bearer <token>` on all protected routes
+
+    ## Content management
+    - **Categories** — organize keywords and sites
+    - **Keywords / Sites / Apps / Excluded apps** — list, create, update, delete, toggle
+    - **Requests** — review user requests
+
+tags:
+  - name: Authentication
+    description: Admin login and session
+  - name: Categories
+    description: Content categories
+  - name: Keywords
+    description: Blocked keywords
+  - name: Sites
+    description: Blocked sites
+  - name: Apps
+    description: Blocked apps
+  - name: Excluded Apps
+    description: Apps excluded from keyword blocking
+  - name: Requests
+    description: User-submitted requests
+
+servers:
+  - url: http://localhost:5000/api/v1
+    description: Development
+  - url: https://api.aynaa.org/api/v1
+    description: Production
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT from admin login
+
+paths: {}
