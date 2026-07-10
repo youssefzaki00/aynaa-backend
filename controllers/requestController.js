@@ -67,12 +67,16 @@ const postRequestController = async (req, res, next) => {
 
 const getRequestsController = async (req, res, next) => {
   try {
-    const { userId, search, page = 1, limit = 20 } = req.query;
+    const { userId, status, search, page = 1, limit = 20 } = req.query;
     const currentUser = req.user;
     const isAdmin = currentUser.role === UserRoles.ADMIN;
 
     if (userId && userId !== currentUser.id && !isAdmin) {
       return sendError(res, 403, "Can't access this resource");
+    }
+
+    if (status && !isValidRequestStatus(status)) {
+      return sendError(res, 400, "Invalid request status");
     }
 
     const filterUserId = isAdmin ? userId : currentUser.id;
@@ -82,6 +86,7 @@ const getRequestsController = async (req, res, next) => {
 
     const { requests, pagination } = await getRequests({
       userId: filterUserId,
+      status,
       search,
       page: pageNumber,
       limit: limitNumber,

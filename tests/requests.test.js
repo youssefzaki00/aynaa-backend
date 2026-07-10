@@ -146,6 +146,28 @@ describe('Requests API', () => {
         res.body.data.items.every((item) => item.userId === otherUserId),
       ).toBe(true);
     });
+
+    test('should filter by status', async () => {
+      const res = await request(app)
+        .get('/api/v1/requests')
+        .query({ status: 'PENDING', search: runId })
+        .auth(adminToken, { type: 'bearer' });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.items.length).toBeGreaterThan(0);
+      expect(
+        res.body.data.items.every((item) => item.status === 'PENDING'),
+      ).toBe(true);
+    });
+
+    test('should reject invalid status filter', async () => {
+      const res = await request(app)
+        .get('/api/v1/requests')
+        .query({ status: 'INVALID' })
+        .auth(adminToken, { type: 'bearer' });
+
+      expect(res.statusCode).toBe(400);
+    });
   });
 
   describe('PATCH /api/v1/requests/:id', () => {

@@ -41,6 +41,11 @@
     security:
       - bearerAuth: []
     parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
       - $ref: '#/components/parameters/SearchParam'
       - $ref: '#/components/parameters/PageParam'
       - $ref: '#/components/parameters/LimitParam'

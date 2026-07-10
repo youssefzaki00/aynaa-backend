@@ -6,6 +6,11 @@
     security:
       - bearerAuth: []
     parameters:
+      - name: status
+        in: query
+        schema:
+          type: string
+          enum: [PENDING, APPROVED, REJECTED]
       - name: userId
         in: query
         schema:

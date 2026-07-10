@@ -14,9 +14,10 @@ exports.findPendingByUser = async (userId) => {
   return request;
 };
 
-exports.getRequests = async ({ userId, search, page = 1, limit = 20 }) => {
+exports.getRequests = async ({ userId, status, search, page = 1, limit = 20 }) => {
   const filter = {};
   if (userId) filter.userId = userId;
+  if (status) filter.status = status;
 
   applySearchFilter(filter, search, ['reason']);
 
