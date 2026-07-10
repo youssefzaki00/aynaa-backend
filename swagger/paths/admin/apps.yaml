@@ -20,11 +20,17 @@
                   properties:
                     data:
                       type: object
+                      required: [items, deleted, pagination]
                       properties:
-                        apps:
+                        items:
                           type: array
                           items:
                             $ref: '#/components/schemas/App'
+                        deleted:
+                          type: array
+                          items:
+                            type: string
+                          description: App IDs soft-deleted since lastSync
                         pagination:
                           $ref: '#/components/schemas/PaginationMeta'
       '401':

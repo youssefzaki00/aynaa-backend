@@ -28,11 +28,17 @@
                   properties:
                     data:
                       type: object
+                      required: [items, deleted, pagination]
                       properties:
-                        keywords:
+                        items:
                           type: array
                           items:
                             $ref: '#/components/schemas/Keyword'
+                        deleted:
+                          type: array
+                          items:
+                            type: string
+                          description: Keyword IDs soft-deleted since lastSync
                         pagination:
                           $ref: '#/components/schemas/PaginationMeta'
       '401':

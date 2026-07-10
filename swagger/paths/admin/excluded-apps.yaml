@@ -20,11 +20,17 @@
                   properties:
                     data:
                       type: object
+                      required: [items, deleted, pagination]
                       properties:
-                        excludedApps:
+                        items:
                           type: array
                           items:
                             $ref: '#/components/schemas/ExcludedApp'
+                        deleted:
+                          type: array
+                          items:
+                            type: string
+                          description: Excluded app IDs soft-deleted since lastSync
                         pagination:
                           $ref: '#/components/schemas/PaginationMeta'
       '401':

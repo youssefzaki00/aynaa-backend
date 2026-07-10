@@ -30,15 +30,17 @@
                   properties:
                     data:
                       type: object
+                      required: [items, deleted, pagination]
                       properties:
-                        keywords:
+                        items:
                           type: array
                           items:
                             $ref: '#/components/schemas/Keyword'
-                        deletedKeywordIds:
+                        deleted:
                           type: array
                           items:
                             type: string
+                          description: Keyword IDs soft-deleted since lastSync
                         pagination:
                           $ref: '#/components/schemas/PaginationMeta'
       '401':
@@ -72,15 +74,17 @@
                   properties:
                     data:
                       type: object
+                      required: [items, deleted, pagination]
                       properties:
-                        sites:
+                        items:
                           type: array
                           items:
                             $ref: '#/components/schemas/Site'
-                        deletedSiteIds:
+                        deleted:
                           type: array
                           items:
                             type: string
+                          description: Site IDs soft-deleted since lastSync
                         pagination:
                           $ref: '#/components/schemas/PaginationMeta'
       '401':
@@ -110,15 +114,17 @@
                   properties:
                     data:
                       type: object
+                      required: [items, deleted, pagination]
                       properties:
-                        apps:
+                        items:
                           type: array
                           items:
                             $ref: '#/components/schemas/App'
-                        deletedIds:
+                        deleted:
                           type: array
                           items:
                             type: string
+                          description: App IDs soft-deleted since lastSync
                         pagination:
                           $ref: '#/components/schemas/PaginationMeta'
       '401':
@@ -148,15 +154,17 @@
                   properties:
                     data:
                       type: object
+                      required: [items, deleted, pagination]
                       properties:
-                        excludedApps:
+                        items:
                           type: array
                           items:
                             $ref: '#/components/schemas/ExcludedApp'
-                        deletedIds:
+                        deleted:
                           type: array
                           items:
                             type: string
+                          description: Excluded app IDs soft-deleted since lastSync
                         pagination:
                           $ref: '#/components/schemas/PaginationMeta'
       '401':

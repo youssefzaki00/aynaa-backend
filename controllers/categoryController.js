@@ -57,7 +57,8 @@ const getCategories = async (req, res, next) => {
     });
 
     sendSuccess(res, 200, 'Categories retrieved successfully', {
-      categories,
+      items: categories,
+      deleted: [],
       pagination,
     });
   } catch (error) {

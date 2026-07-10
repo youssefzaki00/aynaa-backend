@@ -77,8 +77,9 @@ describe('Requests API', () => {
         .query({ search: runId });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.requests.length).toBeGreaterThan(0);
+      expect(res.body.data.items.length).toBeGreaterThan(0);
       expect(res.body.data.pagination.page).toBe(1);
+      expect(Array.isArray(res.body.data.deleted)).toBe(true);
     });
 
     test('should return 403 when querying another userId', async () => {
@@ -107,8 +108,8 @@ describe('Requests API', () => {
         .auth(adminToken, { type: 'bearer' });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.requests.length).toBeGreaterThanOrEqual(2);
-      const userIds = res.body.data.requests.map((item) => item.userId);
+      expect(res.body.data.items.length).toBeGreaterThanOrEqual(2);
+      const userIds = res.body.data.items.map((item) => item.userId);
       expect(userIds).toEqual(expect.arrayContaining([userId, otherUserId]));
     });
 
@@ -119,9 +120,9 @@ describe('Requests API', () => {
         .auth(adminToken, { type: 'bearer' });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.requests.length).toBeGreaterThan(0);
+      expect(res.body.data.items.length).toBeGreaterThan(0);
       expect(
-        res.body.data.requests.every((item) => item.userId === otherUserId),
+        res.body.data.items.every((item) => item.userId === otherUserId),
       ).toBe(true);
     });
   });

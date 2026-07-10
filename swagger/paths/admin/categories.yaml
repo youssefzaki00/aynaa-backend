@@ -49,11 +49,16 @@
                   properties:
                     data:
                       type: object
+                      required: [items, deleted, pagination]
                       properties:
-                        categories:
+                        items:
                           type: array
                           items:
                             $ref: '#/components/schemas/Category'
+                        deleted:
+                          type: array
+                          items:
+                            type: string
                         pagination:
                           $ref: '#/components/schemas/PaginationMeta'
       '401':

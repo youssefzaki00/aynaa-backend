@@ -80,7 +80,7 @@ const getRequestsController = async (req, res, next) => {
     });
 
     return sendSuccess(res, 200, "Requests retrieved successfully", {
-      requests: requests.map((request) => ({
+      items: requests.map((request) => ({
         id: request.id,
         userId: request.userId,
         type: request.type,
@@ -90,6 +90,7 @@ const getRequestsController = async (req, res, next) => {
         createdAt: request.createdAt,
         updatedAt: request.updatedAt,
       })),
+      deleted: [],
       pagination,
     });
   } catch (error) {

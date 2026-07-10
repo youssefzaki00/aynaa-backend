@@ -106,4 +106,20 @@ PaginationMeta:
     page: { type: integer }
     limit: { type: integer }
     total: { type: integer }
-    pages: { type: integer }
+    totalPages: { type: integer }
+    hasNextPage: { type: boolean }
+    hasPrevPage: { type: boolean }
+
+PaginatedListData:
+  type: object
+  properties:
+    items:
+      type: array
+      items: {}
+    deleted:
+      type: array
+      items:
+        type: string
+      description: IDs soft-deleted since lastSync. Empty when lastSync is omitted or the resource does not use soft delete.
+    pagination:
+      $ref: '#/components/schemas/PaginationMeta'
