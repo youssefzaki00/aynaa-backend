@@ -7,7 +7,6 @@ const requestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: [true, 'User ID is required'],
       ref: 'User',
-      index: true,
     },
     type: {
       type: String,
@@ -18,7 +17,6 @@ const requestSchema = new mongoose.Schema(
       type: String,
       enum: REQUEST_STATUSES,
       default: 'PENDING',
-      index: true,
     },
     message: {
       type: String,
@@ -40,9 +38,15 @@ const requestSchema = new mongoose.Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
+// GET /requests — user's own list
+requestSchema.index({ userId: 1, createdAt: -1 });
+// Filter by type (user or admin)
+requestSchema.index({ userId: 1, type: 1, createdAt: -1 });
+requestSchema.index({ type: 1, createdAt: -1 });
+// Admin: all requests, newest first
 requestSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Request', requestSchema);

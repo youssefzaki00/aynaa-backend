@@ -59,7 +59,14 @@ const connectDB = async () => {
     console.log(
       `✅ MongoDB Connected: ${conn.connection.host} (pool: ${minPoolSize}-${maxPoolSize})`
     );
-    return conn; // رجع الاتصال عشان server.js يكمل شغل
+
+    if (NODE_ENV !== 'test') {
+      const { syncAllIndexes } = require('./syncIndexes');
+      await syncAllIndexes();
+      console.log('✅ MongoDB indexes synced');
+    }
+
+    return conn;
   } catch (error) {
     console.error(`❌ Error connecting to MongoDB: ${error.message}`);
     // 3. اقفل البرنامج عشان Coolify يعمل Restart

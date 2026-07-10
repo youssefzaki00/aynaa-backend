@@ -5,9 +5,20 @@ const {
   createExcludedApp,
   getExcludedApps,
   updateExcludedApp,
+  restoreExcludedApp,
   deleteExcludedApp,
   getExcludedAppById,
+  getExcludedAppByIdAny,
+  getExcludedAppByPackageNameAny,
 } = require('./excluded-app.service');
+
+const formatExcludedAppForApi = (app) => ({
+  id: app.id,
+  packageName: app.packageName,
+  isActive: app.isActive,
+  createdAt: app.createdAt,
+  updatedAt: app.updatedAt,
+});
 
 /**
  * Create a new excluded app
@@ -17,32 +28,41 @@ const createExcludedAppController = async (req, res, next) => {
   try {
     const { packageName } = req.body;
 
-    // Validate required fields
     const validation = validateRequiredFields(req.body, ['packageName']);
     if (!validation.valid) {
       return sendError(res, 400, `Missing required fields: ${validation.missing.join(', ')}`);
     }
 
-    // Check if package name already exists
-    const existingApp = await require('./ExcludedApp').findOne({ packageName: packageName.trim() });
+    const trimmedPackage = packageName.trim();
+    const existingApp = await getExcludedAppByPackageNameAny(trimmedPackage);
+
     if (existingApp) {
-      return sendError(res, 409, 'Excluded app with this package name already exists');
+      if (!existingApp.deletedAt) {
+        return sendError(res, 409, 'Excluded app with this package name already exists');
+      }
+
+      const restored = await restoreExcludedApp(existingApp._id, {
+        packageName: trimmedPackage,
+      });
+
+      await invalidateListCache('EXCLUDED_APPS');
+
+      return sendSuccess(res, 200, 'Excluded app restored successfully', {
+        excludedApp: formatExcludedAppForApi(restored),
+      });
     }
 
-    const excludedApp = await createExcludedApp(packageName);
+    const excludedApp = await createExcludedApp(trimmedPackage);
 
     await invalidateListCache('EXCLUDED_APPS');
 
     sendSuccess(res, 201, 'Excluded app created successfully', {
-      excludedApp: {
-        id: excludedApp.id,
-        packageName: excludedApp.packageName,
-        isActive: excludedApp.isActive,
-        createdAt: excludedApp.createdAt,
-        updatedAt: excludedApp.updatedAt,
-      },
+      excludedApp: formatExcludedAppForApi(excludedApp),
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return sendError(res, 409, 'Excluded app with this package name already exists');
+    }
     next(error);
   }
 };
@@ -55,17 +75,16 @@ const getExcludedAppsController = async (req, res, next) => {
   try {
     const { lastSync, search } = req.query;
 
-    const { excludedApps, deletedIds } = await getExcludedApps({ lastSync, search });
+    const { excludedApps, deleted, pagination } = await getExcludedApps({
+      lastSync,
+      search,
+      query: req.query,
+    });
 
     sendSuccess(res, 200, 'Excluded apps retrieved successfully', {
-      excludedApps: excludedApps.map((app) => ({
-        id: app.id,
-        packageName: app.packageName,
-        isActive: app.isActive,
-        createdAt: app.createdAt,
-        updatedAt: app.updatedAt,
-      })),
-      deletedIds,
+      items: excludedApps.map(formatExcludedAppForApi),
+      deleted,
+      pagination,
     });
   } catch (error) {
     next(error);
@@ -88,10 +107,9 @@ const updateExcludedAppController = async (req, res, next) => {
 
     const updates = {};
     if (packageName !== undefined) {
-      // Check if new package name conflicts with existing
       if (packageName.trim() !== existingApp.packageName) {
-        const conflictApp = await require('./ExcludedApp').findOne({ packageName: packageName.trim() });
-        if (conflictApp) {
+        const conflictApp = await getExcludedAppByPackageNameAny(packageName.trim());
+        if (conflictApp && !conflictApp.deletedAt) {
           return sendError(res, 409, 'Excluded app with this package name already exists');
         }
         updates.packageName = packageName.trim();
@@ -111,13 +129,7 @@ const updateExcludedAppController = async (req, res, next) => {
     await invalidateListCache('EXCLUDED_APPS');
 
     sendSuccess(res, 200, 'Excluded app updated successfully', {
-      excludedApp: {
-        id: updatedApp.id,
-        packageName: updatedApp.packageName,
-        isActive: updatedApp.isActive,
-        createdAt: updatedApp.createdAt,
-        updatedAt: updatedApp.updatedAt,
-      },
+      excludedApp: formatExcludedAppForApi(updatedApp),
     });
   } catch (error) {
     next(error);
@@ -131,10 +143,19 @@ const updateExcludedAppController = async (req, res, next) => {
 const deleteExcludedAppController = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const existingApp = await getExcludedAppByIdAny(id);
 
-    const existingApp = await getExcludedAppById(id);
     if (!existingApp) {
       return sendError(res, 404, 'Excluded app not found');
+    }
+
+    if (existingApp.deletedAt) {
+      return sendSuccess(res, 200, 'Excluded app deleted successfully', {
+        deletedExcludedApp: {
+          id: existingApp.id,
+          packageName: existingApp.packageName,
+        },
+      });
     }
 
     const deletedApp = await deleteExcludedApp(id);

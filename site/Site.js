@@ -17,7 +17,6 @@ const siteSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
-      index: true,
     },
     deletedAt: {
       type: Date,
@@ -37,8 +36,13 @@ const siteSchema = new mongoose.Schema(
   },
 );
 
-siteSchema.index({ updatedAt: 1 });
-siteSchema.index({ createdAt: 1 });
-siteSchema.index({ deletedAt: 1 });
+// GET /sites — active list + default sort
+siteSchema.index({ deletedAt: 1, createdAt: -1 });
+// Filtered list: isActive, categoryId
+siteSchema.index({ deletedAt: 1, isActive: 1, category: 1, createdAt: -1 });
+// lastSync incremental + soft-delete tombstones
+siteSchema.index({ deletedAt: 1, updatedAt: 1 });
+// Sites per category (upload / admin views)
+siteSchema.index({ category: 1, deletedAt: 1 });
 
 module.exports = mongoose.model("Site", siteSchema);

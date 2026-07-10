@@ -34,18 +34,38 @@ const createSite = async (req, res, next) => {
       );
     }
 
+    const normalizedUrl = url.trim().toLowerCase();
+    const existing = await Site.findOne({ url: normalizedUrl });
+
+    if (existing) {
+      if (!existing.deletedAt) {
+        return sendError(res, 409, "Site URL already exists");
+      }
+
+      existing.deletedAt = null;
+      existing.category = category._id;
+      if (isActive !== undefined) {
+        existing.isActive = toBool(isActive);
+      }
+      await existing.save();
+
+      await invalidateListCache("SITES");
+
+      return sendSuccess(res, 200, "Site restored successfully", { site: existing });
+    }
+
     const site = await Site.create({
-      url: url.trim(),
+      url: normalizedUrl,
       category: category._id,
       isActive: isActive !== undefined ? toBool(isActive) : true,
     });
 
-    await invalidateListCache('SITES');
+    await invalidateListCache("SITES");
 
     return sendSuccess(res, 201, "Site created successfully", { site });
   } catch (error) {
     if (error.code === 11000) {
-      return sendError(res, 400, "Site URL already exists");
+      return sendError(res, 409, "Site URL already exists");
     }
     return next(error);
   }
@@ -92,16 +112,16 @@ const getSites = async (req, res, next) => {
       return siteObj;
     });
 
-    let deletedSiteIds = [];
+    let deleted = [];
     if (lastSync) {
       const since = new Date(lastSync);
       const tombstones = await Site.find({ deletedAt: { $gt: since } }).select("_id");
-      deletedSiteIds = tombstones.map((d) => d._id);
+      deleted = tombstones.map((d) => d._id);
     }
 
     sendSuccess(res, 200, "Sites retrieved successfully", {
-      sites: transformedSites,
-      deletedSiteIds,
+      items: transformedSites,
+      deleted,
       pagination,
     });
   } catch (error) {
@@ -128,12 +148,12 @@ const updateSite = async (req, res, next) => {
 
     await site.save();
 
-    await invalidateListCache('SITES');
+    await invalidateListCache("SITES");
 
     return sendSuccess(res, 200, "Site updated successfully", { site });
   } catch (error) {
     if (error.code === 11000) {
-      return sendError(res, 400, "Site URL already exists");
+      return sendError(res, 409, "Site URL already exists");
     }
     return next(error);
   }
@@ -142,17 +162,25 @@ const updateSite = async (req, res, next) => {
 const deleteSite = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const site = await Site.findById(id);
 
-    const site = await Site.findOneAndUpdate(
-      { _id: id, deletedAt: null },
-      { deletedAt: new Date() },
-      { new: true },
-    );
+    if (!site) {
+      return sendError(res, 404, "Site not found");
+    }
 
-    await invalidateListCache('SITES');
+    if (site.deletedAt) {
+      return sendSuccess(res, 200, "Site deleted successfully", {
+        id: site._id.toString(),
+      });
+    }
+
+    site.deletedAt = new Date();
+    await site.save();
+
+    await invalidateListCache("SITES");
 
     return sendSuccess(res, 200, "Site deleted successfully", {
-      id: site ? site._id.toString() : null,
+      id: site._id.toString(),
     });
   } catch (error) {
     return next(error);
@@ -163,7 +191,7 @@ const uploadSitesFile = async (req, res, next) => {
   try {
     await seedSitesFileToDB(req.file.path, req.body.categoryId);
 
-    await invalidateListCache('SITES');
+    await invalidateListCache("SITES");
 
     return sendSuccess(res, 200, "Sites is seeded successfully");
   } catch (error) {

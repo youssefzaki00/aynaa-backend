@@ -45,6 +45,38 @@ describe("Admin Keyword Management API", () => {
       track("keywords", res.body.data.keyword.id);
       keywordsCount++;
     });
+
+    test("should return 409 for duplicate word", async () => {
+      const word = testWord("duplicate");
+      await Keyword.create({ word, category: categoryId, isEnabled: true });
+
+      const res = await request(app)
+        .post("/api/v1/keywords")
+        .auth(adminToken, { type: "bearer" })
+        .send({ word, categoryId: categoryId.toString() });
+
+      expect(res.statusCode).toBe(409);
+    });
+
+    test("should restore soft-deleted keyword on recreate", async () => {
+      const word = testWord("restore");
+      const keyword = await Keyword.create({
+        word,
+        category: categoryId,
+        isEnabled: true,
+        deletedAt: new Date(),
+      });
+      track("keywords", keyword._id);
+
+      const res = await request(app)
+        .post("/api/v1/keywords")
+        .auth(adminToken, { type: "bearer" })
+        .send({ word, categoryId: categoryId.toString() });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.message).toMatch(/restored/i);
+      expect(res.body.data.keyword.id).toBe(keyword._id.toString());
+    });
   });
 
   describe("GET /api/v1/keywords should retrieve keywords", () => {
@@ -55,7 +87,7 @@ describe("Admin Keyword Management API", () => {
         .query(keywordSearchQuery());
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.keywords).toHaveLength(keywordsCount);
+      expect(res.body.data.items).toHaveLength(keywordsCount);
       expect(res.body.data.pagination.total).toBe(keywordsCount);
     });
 
@@ -66,8 +98,8 @@ describe("Admin Keyword Management API", () => {
         .query({ lastSync: "2026-01-01", search: runId });
 
       expect(res.statusCode).toBe(200);
-      expect(Array.isArray(res.body.data.deletedKeywordIds)).toBe(true);
-      for (const keyword of res.body.data.keywords) {
+      expect(Array.isArray(res.body.data.deleted)).toBe(true);
+      for (const keyword of res.body.data.items) {
         const createdAfter = new Date(keyword.createdAt) > new Date("2026-01-01");
         const updatedAfter = new Date(keyword.updatedAt) > new Date("2026-01-01");
         expect(createdAfter || updatedAfter).toBe(true);
@@ -81,7 +113,7 @@ describe("Admin Keyword Management API", () => {
         .query({ categoryId: "507f1f77bcf86cd799439011" });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.keywords).toEqual([]);
+      expect(res.body.data.items).toEqual([]);
     });
   });
 
@@ -93,6 +125,23 @@ describe("Admin Keyword Management API", () => {
 
       expect(res.statusCode).toBe(200);
       keywordsCount--;
+    });
+
+    test("should return 200 when deleting already deleted keyword", async () => {
+      const res = await request(app)
+        .delete(`/api/v1/keywords/${keywords[0]._id.toString()}`)
+        .auth(adminToken, { type: "bearer" });
+
+      expect(res.statusCode).toBe(200);
+    });
+
+    test("should return 404 for non-existent keyword", async () => {
+      const fakeId = "507f1f77bcf86cd799439011";
+      const res = await request(app)
+        .delete(`/api/v1/keywords/${fakeId}`)
+        .auth(adminToken, { type: "bearer" });
+
+      expect(res.statusCode).toBe(404);
     });
   });
 
@@ -135,11 +184,11 @@ describe("Admin Keyword Management API", () => {
         .query({ lastSync, search: runId });
 
       expect(res.statusCode).toBe(200);
-      const words = res.body.data.keywords.map((k) => k.word);
+      const words = res.body.data.items.map((k) => k.word);
       expect(words).toContain(updatedWord);
     });
 
-    test("should return deletedKeywordIds after soft delete", async () => {
+    test("should return deleted after soft delete", async () => {
       const keywordToDelete = await Keyword.create({
         word: testWord("todelete"),
         category: categoryId,
@@ -160,7 +209,7 @@ describe("Admin Keyword Management API", () => {
         .query({ lastSync, search: runId });
 
       expect(syncRes.statusCode).toBe(200);
-      expect(syncRes.body.data.deletedKeywordIds.map(String)).toContain(
+      expect(syncRes.body.data.deleted.map(String)).toContain(
         keywordToDelete._id.toString(),
       );
 
@@ -169,7 +218,7 @@ describe("Admin Keyword Management API", () => {
         .auth(adminToken, { type: "bearer" })
         .query(keywordSearchQuery());
 
-      const ids = listRes.body.data.keywords.map((k) => k.id);
+      const ids = listRes.body.data.items.map((k) => k.id);
       expect(ids).not.toContain(keywordToDelete._id.toString());
     });
   });

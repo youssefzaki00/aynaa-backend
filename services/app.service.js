@@ -1,14 +1,14 @@
 const App = require('../models/App');
-const { applySearchFilter } = require('../utils/search');
+const { executePaginatedQuery } = require('../utils/pagination');
 
 exports.createApp = async (payload) => {
   const app = await App.create(payload);
   return app;
 };
 
-exports.getApps = async ({ lastSync, search } = {}) => {
-  const filter = { isDeleted: false };
-  let deletedIds = [];
+exports.getApps = async ({ lastSync, search, query = {} } = {}) => {
+  const filter = { deletedAt: null };
+  let deleted = [];
 
   if (lastSync) {
     const since = new Date(lastSync);
@@ -16,33 +16,53 @@ exports.getApps = async ({ lastSync, search } = {}) => {
       { createdAt: { $gt: since } },
       { updatedAt: { $gt: since } },
     ];
-    const tombstones = await App.find({
-      isDeleted: true,
-      updatedAt: { $gt: since },
-    }).select('_id');
-    deletedIds = tombstones.map((a) => a._id);
+    const tombstones = await App.find({ deletedAt: { $gt: since } }).select('_id');
+    deleted = tombstones.map((d) => d._id);
   }
 
-  applySearchFilter(filter, search, ['packageName']);
+  const { items, pagination } = await executePaginatedQuery({
+    model: App,
+    filter,
+    query: { ...query, search },
+    searchFields: ['packageName'],
+  });
 
-  const apps = await App.find(filter).sort({ createdAt: -1 });
-  return { apps, deletedIds };
+  return { apps: items, deleted, pagination };
 };
 
 exports.getAppById = async (id) => {
-  const app = await App.findOne({ _id: id, isDeleted: false });
+  const app = await App.findOne({ _id: id, deletedAt: null });
+  return app;
+};
+
+exports.getAppByIdAny = async (id) => {
+  const app = await App.findById(id);
   return app;
 };
 
 exports.getAppByPackageName = async (packageName) => {
-  const app = await App.findOne({ packageName: packageName.trim(), isDeleted: false });
+  const app = await App.findOne({ packageName: packageName.trim(), deletedAt: null });
+  return app;
+};
+
+exports.getAppByPackageNameAny = async (packageName) => {
+  const app = await App.findOne({ packageName: packageName.trim() });
   return app;
 };
 
 exports.updateApp = async (id, updates) => {
   const app = await App.findOneAndUpdate(
-    { _id: id, isDeleted: false },
+    { _id: id, deletedAt: null },
     updates,
+    { new: true, runValidators: true }
+  );
+  return app;
+};
+
+exports.restoreApp = async (id, updates = {}) => {
+  const app = await App.findOneAndUpdate(
+    { _id: id, deletedAt: { $ne: null } },
+    { ...updates, deletedAt: null },
     { new: true, runValidators: true }
   );
   return app;
@@ -50,8 +70,8 @@ exports.updateApp = async (id, updates) => {
 
 exports.deleteApp = async (id) => {
   const app = await App.findOneAndUpdate(
-    { _id: id, isDeleted: false },
-    { isDeleted: true },
+    { _id: id, deletedAt: null },
+    { deletedAt: new Date() },
     { new: true }
   );
   return app;

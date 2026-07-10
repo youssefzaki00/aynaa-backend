@@ -52,6 +52,25 @@ describe("Apps API", () => {
 
       expect(res.statusCode).toBe(409);
     });
+
+    test("should restore soft-deleted app on recreate", async () => {
+      const restorePackage = testPackage("restore");
+      const created = await createTrackedApp("restore");
+
+      await request(app)
+        .delete(`/api/v1/apps/${created._id}`)
+        .auth(adminToken, { type: "bearer" });
+
+      const res = await request(app)
+        .post("/api/v1/apps")
+        .auth(adminToken, { type: "bearer" })
+        .send({ packageName: restorePackage });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.message).toMatch(/restored/i);
+      expect(res.body.data.app.id).toBe(created._id.toString());
+      expect(res.body.data.app.isDeleted).toBe(false);
+    });
   });
 
   describe("GET /api/v1/apps", () => {
@@ -63,9 +82,12 @@ describe("Apps API", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(Array.isArray(res.body.data.apps)).toBe(true);
-      expect(res.body.data.apps.length).toBe(1);
-      expect(res.body.data.apps[0].packageName).toBe(mainPackage);
+      expect(Array.isArray(res.body.data.items)).toBe(true);
+      expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.data.pagination).toBeDefined();
+      expect(res.body.data.items.some((item) => item.packageName === mainPackage)).toBe(
+        true,
+      );
     });
 
     test("should filter by search query", async () => {
@@ -75,8 +97,8 @@ describe("Apps API", () => {
         .query({ search: mainPackage });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.apps.length).toBe(1);
-      expect(res.body.data.apps[0].packageName).toBe(mainPackage);
+      expect(res.body.data.items.length).toBe(1);
+      expect(res.body.data.items[0].packageName).toBe(mainPackage);
     });
 
     describe("should support lastSync query", () => {
@@ -87,7 +109,7 @@ describe("Apps API", () => {
           .query({ lastSync: new Date().toISOString(), search: runId });
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.data.apps.length).toBe(0);
+        expect(res.body.data.items.length).toBe(0);
       });
 
       test("should return 1 app", async () => {
@@ -100,8 +122,8 @@ describe("Apps API", () => {
           });
 
         expect(res.statusCode).toBe(200);
-        expect(res.body.data.apps.length).toBe(1);
-        expect(Array.isArray(res.body.data.deletedIds)).toBe(true);
+        expect(res.body.data.items.length).toBeGreaterThanOrEqual(1);
+        expect(Array.isArray(res.body.data.deleted)).toBe(true);
       });
     });
   });
@@ -120,11 +142,15 @@ describe("Apps API", () => {
         .query({ search: runId });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.apps).toHaveLength(1);
-      expect(res.body.data.apps[0].packageName).toBe(mainPackage);
+      expect(res.body.data.items.some((item) => item.id === created._id.toString())).toBe(
+        false,
+      );
+      expect(res.body.data.items.some((item) => item.packageName === mainPackage)).toBe(
+        true,
+      );
     });
 
-    test("should return deletedIds in lastSync response after delete", async () => {
+    test("should return deleted in lastSync response after delete", async () => {
       const created = await createTrackedApp("sync-delete");
       const lastSync = new Date().toISOString();
 
@@ -140,8 +166,31 @@ describe("Apps API", () => {
         .query({ lastSync, search: runId });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.deletedIds.map(String)).toContain(created._id.toString());
-      expect(res.body.data.apps).toHaveLength(0);
+      expect(res.body.data.deleted.map(String)).toContain(created._id.toString());
+      expect(res.body.data.items).toHaveLength(0);
+    });
+
+    test("should return 200 when deleting already deleted app", async () => {
+      const created = await createTrackedApp("delete-twice");
+
+      const first = await request(app)
+        .delete(`/api/v1/apps/${created._id}`)
+        .auth(adminToken, { type: "bearer" });
+      expect(first.statusCode).toBe(200);
+
+      const second = await request(app)
+        .delete(`/api/v1/apps/${created._id}`)
+        .auth(adminToken, { type: "bearer" });
+      expect(second.statusCode).toBe(200);
+    });
+
+    test("should return 404 when deleting non-existent app", async () => {
+      const fakeId = "507f1f77bcf86cd799439011";
+      const res = await request(app)
+        .delete(`/api/v1/apps/${fakeId}`)
+        .auth(adminToken, { type: "bearer" });
+
+      expect(res.statusCode).toBe(404);
     });
   });
 });

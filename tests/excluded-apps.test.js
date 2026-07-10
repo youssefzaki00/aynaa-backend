@@ -50,6 +50,24 @@ describe("Excluded Apps API", () => {
 
       expect(res.statusCode).toBe(409);
     });
+
+    test("should restore soft-deleted excluded app on recreate", async () => {
+      const restorePackage = testPackage("restore");
+      const created = await createTrackedExcludedApp("restore");
+
+      await request(app)
+        .delete(`/api/v1/excluded-apps/${created._id}`)
+        .auth(adminToken, { type: "bearer" });
+
+      const res = await request(app)
+        .post("/api/v1/excluded-apps")
+        .auth(adminToken, { type: "bearer" })
+        .send({ packageName: restorePackage });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.message).toMatch(/restored/i);
+      expect(res.body.data.excludedApp.id).toBe(created._id.toString());
+    });
   });
 
   describe("GET /api/v1/excluded-apps", () => {
@@ -66,13 +84,14 @@ describe("Excluded Apps API", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.data.excludedApps.length).toBeGreaterThan(0);
-      expect(Array.isArray(res.body.data.deletedIds)).toBe(true);
+      expect(res.body.data.items.length).toBeGreaterThan(0);
+      expect(Array.isArray(res.body.data.deleted)).toBe(true);
+      expect(res.body.data.pagination).toBeDefined();
     });
   });
 
   describe("lastSync and soft delete tombstones", () => {
-    test("should return deletedIds after soft delete", async () => {
+    test("should return deleted after soft delete", async () => {
       const created = await createTrackedExcludedApp("sync-tombstone");
       const lastSync = new Date().toISOString();
 
@@ -88,8 +107,8 @@ describe("Excluded Apps API", () => {
         .query({ lastSync, search: runId });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.deletedIds.map(String)).toContain(created._id.toString());
-      expect(res.body.data.excludedApps).toHaveLength(0);
+      expect(res.body.data.deleted.map(String)).toContain(created._id.toString());
+      expect(res.body.data.items).toHaveLength(0);
     });
   });
 
@@ -152,6 +171,14 @@ describe("Excluded Apps API", () => {
 
       expect(res.statusCode).toBe(200);
       expect(res.body.data.deletedExcludedApp.packageName).toBe(packageName);
+    });
+
+    test("should return 200 when deleting already deleted app", async () => {
+      const res = await request(app)
+        .delete(`/api/v1/excluded-apps/${excludedAppId}`)
+        .auth(adminToken, { type: "bearer" });
+
+      expect(res.statusCode).toBe(200);
     });
 
     test("should return 404 for non-existent app", async () => {

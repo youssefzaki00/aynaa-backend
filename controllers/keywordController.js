@@ -5,6 +5,19 @@ const { executePaginatedQuery } = require('../utils/pagination');
 const { normalizeWord, validateRequiredFields } = require('../utils/validation');
 const { invalidateListCache } = require('../utils/cacheInvalidate');
 
+const formatKeywordResponse = (keyword, category) => ({
+  id: keyword._id,
+  word: keyword.word,
+  category: category
+    ? {
+        id: category._id,
+        name: category.name,
+        displayName: category.displayName,
+      }
+    : null,
+  isEnabled: keyword.isEnabled,
+});
+
 /**
  * Create a new keyword
  * POST /api/v1/admin/keywords
@@ -13,13 +26,11 @@ const createKeyword = async (req, res, next) => {
   try {
     const { word, categoryId } = req.body;
 
-    // Validate required fields
     const validation = validateRequiredFields(req.body, ['word', 'categoryId']);
     if (!validation.valid) {
       return sendError(res, 400, `Missing required fields: ${validation.missing.join(', ')}`);
     }
 
-    // Verify category exists
     const category = await Category.findOne({ _id: categoryId });
     if (!category) {
       return sendError(res, 404, 'Category not found');
@@ -29,30 +40,43 @@ const createKeyword = async (req, res, next) => {
       return sendError(res, 400, 'Cannot create keyword with inactive category');
     }
 
+    const normalizedWord = normalizeWord(word);
+    const existing = await Keyword.findOne({ word: normalizedWord });
+
+    if (existing) {
+      if (!existing.deletedAt) {
+        return sendError(res, 409, 'Keyword already exists');
+      }
+
+      existing.deletedAt = null;
+      existing.category = category._id;
+      await existing.save();
+      await existing.populate('category');
+
+      await invalidateListCache('KEYWORDS');
+
+      return sendSuccess(res, 200, 'Keyword restored successfully', {
+        keyword: formatKeywordResponse(existing, existing.category),
+      });
+    }
+
     const keyword = await Keyword.create({
-      word: normalizeWord(word),
+      word: normalizedWord,
       category: category._id,
       isEnabled: true,
     });
 
-    // Populate category for response
     await keyword.populate('category');
 
     await invalidateListCache('KEYWORDS');
 
     sendSuccess(res, 201, 'Keyword created successfully', {
-      keyword: {
-        id: keyword._id,
-        word: keyword.word,
-        category: {
-          id: category._id,
-          name: category.name,
-          displayName: category.displayName,
-        },
-        isEnabled: keyword.isEnabled,
-      },
+      keyword: formatKeywordResponse(keyword, category),
     });
   } catch (error) {
+    if (error.code === 11000) {
+      return sendError(res, 409, 'Keyword already exists');
+    }
     next(error);
   }
 };
@@ -101,16 +125,16 @@ const getKeywords = async (req, res, next) => {
       return keywordObj;
     });
 
-    let deletedKeywordIds = [];
+    let deleted = [];
     if (lastSync) {
       const since = new Date(lastSync);
       const tombstones = await Keyword.find({ deletedAt: { $gt: since } }).select('_id');
-      deletedKeywordIds = tombstones.map((d) => d._id);
+      deleted = tombstones.map((d) => d._id);
     }
 
     sendSuccess(res, 200, 'Keywords retrieved successfully', {
-      keywords: transformedKeywords,
-      deletedKeywordIds,
+      items: transformedKeywords,
+      deleted,
       pagination,
     });
   } catch (error) {
@@ -178,23 +202,31 @@ const updateKeyword = async (req, res, next) => {
 const deleteKeyword = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const keyword = await Keyword.findById(id);
 
-    const keyword = await Keyword.findOneAndUpdate(
-      { _id: id, deletedAt: null },
-      { deletedAt: new Date() },
-      { new: true }
-    );
+    if (!keyword) {
+      return sendError(res, 404, 'Keyword not found');
+    }
+
+    if (keyword.deletedAt) {
+      return sendSuccess(res, 200, 'Keyword deleted successfully', {
+        deletedKeyword: {
+          id: keyword._id,
+          word: keyword.word,
+        },
+      });
+    }
+
+    keyword.deletedAt = new Date();
+    await keyword.save();
 
     await invalidateListCache('KEYWORDS');
 
-    // delete method is idempotent — return 200 even if already deleted
     sendSuccess(res, 200, 'Keyword deleted successfully', {
-      deletedKeyword: keyword
-        ? {
-            id: keyword._id,
-            word: keyword.word,
-          }
-        : null,
+      deletedKeyword: {
+        id: keyword._id,
+        word: keyword.word,
+      },
     });
   } catch (error) {
     next(error);

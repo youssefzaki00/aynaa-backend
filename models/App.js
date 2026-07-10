@@ -9,15 +9,13 @@ const appSchema = new mongoose.Schema(
       trim: true,
       maxlength: 200,
     },
-    isDeleted: {
-      type: Boolean,
-      default: false,
-      index: true,
+    deletedAt: {
+      type: Date,
+      default: null,
     },
     isActive: {
       type: Boolean,
       default: true,
-      index: true,
     },
   },
   {
@@ -30,7 +28,14 @@ const appSchema = new mongoose.Schema(
         return ret;
       },
     },
-  }
+  },
 );
+
+// GET /apps — active list + default sort
+appSchema.index({ deletedAt: 1, createdAt: -1 });
+// lastSync incremental + soft-delete tombstones
+appSchema.index({ deletedAt: 1, updatedAt: 1 });
+// Lookup / restore by package name
+appSchema.index({ packageName: 1, deletedAt: 1 });
 
 module.exports = mongoose.model('App', appSchema);

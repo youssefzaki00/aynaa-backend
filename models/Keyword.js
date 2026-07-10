@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
 
 const keywordSchema = new mongoose.Schema(
   {
@@ -29,18 +28,21 @@ const keywordSchema = new mongoose.Schema(
     toJSON: {
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
-        delete ret._id
+        delete ret._id;
         delete ret.__v;
         return ret;
       },
     },
-  }
+  },
 );
 
-// Index for faster filtering
-keywordSchema.index({ isEnabled: 1, category: 1 });
-keywordSchema.index({ updatedAt: 1 });
-keywordSchema.index({ createdAt: 1 });
-keywordSchema.index({ deletedAt: 1 });
+// GET /keywords — active list + default sort
+keywordSchema.index({ deletedAt: 1, createdAt: -1 });
+// Filtered list: categoryId, isEnabled
+keywordSchema.index({ deletedAt: 1, category: 1, isEnabled: 1, createdAt: -1 });
+// lastSync incremental + soft-delete tombstones
+keywordSchema.index({ deletedAt: 1, updatedAt: 1 });
+// Category delete guard: count keywords per category
+keywordSchema.index({ category: 1, deletedAt: 1 });
 
 module.exports = mongoose.model('Keyword', keywordSchema);

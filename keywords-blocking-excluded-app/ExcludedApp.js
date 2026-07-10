@@ -27,13 +27,14 @@ const excludedAppSchema = new mongoose.Schema(
         return ret;
       },
     },
-  }
+  },
 );
 
-// Index for faster queries
-excludedAppSchema.index({ isActive: 1 });
-excludedAppSchema.index({ updatedAt: 1 });
-excludedAppSchema.index({ createdAt: 1 });
-excludedAppSchema.index({ deletedAt: 1 });
+// GET /excluded-apps — active list + default sort
+excludedAppSchema.index({ deletedAt: 1, createdAt: -1 });
+// lastSync incremental + soft-delete tombstones
+excludedAppSchema.index({ deletedAt: 1, updatedAt: 1 });
+// Lookup / restore by package name
+excludedAppSchema.index({ packageName: 1, deletedAt: 1 });
 
 module.exports = mongoose.model('ExcludedApp', excludedAppSchema);

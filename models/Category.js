@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const crypto = require('crypto');
 
 const categorySchema = new mongoose.Schema(
   {
@@ -29,15 +28,15 @@ const categorySchema = new mongoose.Schema(
     toJSON: {
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
-        delete ret._id
+        delete ret._id;
         delete ret.__v;
         return ret;
       },
     },
-  }
+  },
 );
 
-// Index for faster filtering
-categorySchema.index({ isActive: 1 });
+// GET /admin/categories — filter by isActive, sort newest first
+categorySchema.index({ isActive: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Category', categorySchema);
