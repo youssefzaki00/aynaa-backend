@@ -82,7 +82,7 @@ describe("Sites API", () => {
     expect(res.statusCode).toBe(200);
     expect(res.body.message).toMatch(/restored/i);
     expect(res.body.data.site.id).toBe(site._id.toString());
-    expect(res.body.data.site.deletedAt).toBeUndefined();
+    expect(res.body.data.site.deletedAt).toBeNull();
   });
 
   test("GET /api/v1/sites (admin) can filter by isActive query", async () => {

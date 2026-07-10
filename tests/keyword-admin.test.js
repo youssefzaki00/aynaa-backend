@@ -48,7 +48,9 @@ describe("Admin Keyword Management API", () => {
 
     test("should return 409 for duplicate word", async () => {
       const word = testWord("duplicate");
-      await Keyword.create({ word, category: categoryId, isEnabled: true });
+      const keyword = await Keyword.create({ word, category: categoryId, isEnabled: true });
+      track("keywords", keyword._id);
+      keywordsCount++;
 
       const res = await request(app)
         .post("/api/v1/keywords")
@@ -76,6 +78,7 @@ describe("Admin Keyword Management API", () => {
       expect(res.statusCode).toBe(200);
       expect(res.body.message).toMatch(/restored/i);
       expect(res.body.data.keyword.id).toBe(keyword._id.toString());
+      keywordsCount++;
     });
   });
 

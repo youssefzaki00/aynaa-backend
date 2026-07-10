@@ -45,6 +45,12 @@ const mergePaths = (target, source) => {
   }
 };
 
+const COMPONENT_FILE_BUCKETS = {
+  'schemas.yaml': 'schemas',
+  'parameters.yaml': 'parameters',
+  'responses.yaml': 'responses',
+};
+
 const loadComponents = () => {
   const components = {
     schemas: {},
@@ -63,6 +69,13 @@ const loadComponents = () => {
     }
 
     const doc = readYaml(path.join(componentsDir, entry.name));
+    const bucket = COMPONENT_FILE_BUCKETS[entry.name.toLowerCase()];
+
+    if (bucket) {
+      Object.assign(components[bucket], doc);
+      continue;
+    }
+
     for (const [key, value] of Object.entries(doc)) {
       if (components[key]) {
         Object.assign(components[key], value);
