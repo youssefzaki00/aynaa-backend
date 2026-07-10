@@ -1,7 +1,7 @@
 /requests:
   post:
     tags: [Requests]
-    summary: Create request
+    summary: Create uninstall request
     security:
       - bearerAuth: []
     requestBody:
@@ -10,15 +10,11 @@
         application/json:
           schema:
             type: object
-            required: [type]
+            required: [reason]
             properties:
-              type:
+              reason:
                 type: string
-                enum: [UNINSTALL]
-              message:
-                type: string
-              details:
-                type: object
+                maxLength: 500
     responses:
       '201':
         description: Request created
@@ -36,6 +32,8 @@
                           $ref: '#/components/schemas/Request'
       '401':
         $ref: '#/components/responses/Unauthorized'
+      '409':
+        description: Pending request already exists for this user
 
   get:
     tags: [Requests]
@@ -43,11 +41,6 @@
     security:
       - bearerAuth: []
     parameters:
-      - name: type
-        in: query
-        schema:
-          type: string
-          enum: [UNINSTALL]
       - $ref: '#/components/parameters/SearchParam'
       - $ref: '#/components/parameters/PageParam'
       - $ref: '#/components/parameters/LimitParam'
@@ -81,7 +74,7 @@
 /requests/{id}:
   patch:
     tags: [Requests]
-    summary: Update own request
+    summary: Update own pending request reason
     security:
       - bearerAuth: []
     parameters:
@@ -91,17 +84,16 @@
         application/json:
           schema:
             type: object
+            required: [reason]
             properties:
-              status:
+              reason:
                 type: string
-                enum: [PENDING, APPROVED, REJECTED]
-              message:
-                type: string
-              details:
-                type: object
+                maxLength: 500
     responses:
       '200':
         $ref: '#/components/responses/Success'
+      '400':
+        $ref: '#/components/responses/BadRequest'
       '401':
         $ref: '#/components/responses/Unauthorized'
       '403':

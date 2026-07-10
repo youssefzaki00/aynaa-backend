@@ -6,18 +6,28 @@ const {
 } = require("../utils/validation");
 const {
   createRequest,
+  findPendingByUser,
   getRequests,
   getRequestById,
   updateRequest,
   deleteRequest,
 } = require("../services/request.service");
 
+const formatRequestForApi = (request) => ({
+  id: request.id,
+  userId: request.userId,
+  reason: request.reason,
+  status: request.status,
+  createdAt: request.createdAt,
+  updatedAt: request.updatedAt,
+});
+
 const postRequestController = async (req, res, next) => {
   try {
-    const { type, status, message, details, createdAt } = req.body;
+    const { reason } = req.body;
     const currentUser = req.user;
 
-    const validation = validateRequiredFields(req.body, ["type"]);
+    const validation = validateRequiredFields(req.body, ["reason"]);
     if (!validation.valid) {
       return sendError(
         res,
@@ -26,30 +36,29 @@ const postRequestController = async (req, res, next) => {
       );
     }
 
-    if (status && !isValidRequestStatus(status)) {
-      return sendError(res, 400, "Invalid request status");
+    const trimmedReason = reason.trim();
+
+    if (!trimmedReason) {
+      return sendError(res, 400, "Reason cannot be empty");
+    }
+
+    const existingPending = await findPendingByUser(currentUser.id);
+    if (existingPending) {
+      return sendError(
+        res,
+        409,
+        "A pending uninstall request already exists",
+      );
     }
 
     const request = await createRequest({
       userId: currentUser.id,
-      type,
-      status,
-      message,
-      details,
-      createdAt,
+      reason: trimmedReason,
+      status: "PENDING",
     });
 
     return sendSuccess(res, 201, "Request created successfully", {
-      request: {
-        id: request.id,
-        userId: request.userId,
-        type: request.type,
-        status: request.status,
-        message: request.message,
-        details: request.details,
-        createdAt: request.createdAt,
-        updatedAt: request.updatedAt,
-      },
+      request: formatRequestForApi(request),
     });
   } catch (error) {
     return next(error);
@@ -58,7 +67,7 @@ const postRequestController = async (req, res, next) => {
 
 const getRequestsController = async (req, res, next) => {
   try {
-    const { type, userId, search, page = 1, limit = 20 } = req.query;
+    const { userId, search, page = 1, limit = 20 } = req.query;
     const currentUser = req.user;
     const isAdmin = currentUser.role === UserRoles.ADMIN;
 
@@ -73,23 +82,13 @@ const getRequestsController = async (req, res, next) => {
 
     const { requests, pagination } = await getRequests({
       userId: filterUserId,
-      type,
       search,
       page: pageNumber,
       limit: limitNumber,
     });
 
     return sendSuccess(res, 200, "Requests retrieved successfully", {
-      items: requests.map((request) => ({
-        id: request.id,
-        userId: request.userId,
-        type: request.type,
-        status: request.status,
-        message: request.message,
-        details: request.details,
-        createdAt: request.createdAt,
-        updatedAt: request.updatedAt,
-      })),
+      items: requests.map(formatRequestForApi),
       deleted: [],
       pagination,
     });
@@ -101,48 +100,53 @@ const getRequestsController = async (req, res, next) => {
 const updateRequestController = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status, message, details } = req.body;
+    const { status, reason } = req.body;
     const currentUser = req.user;
+    const isAdmin = currentUser.role === UserRoles.ADMIN;
 
     const existing = await getRequestById(id);
     if (!existing) {
       return sendError(res, 404, "Request not found");
     }
 
-    if (
-      existing.userId.toString() !== currentUser.id &&
-      currentUser.role != "admin"
-    ) {
+    const isOwner = existing.userId.toString() === currentUser.id;
+
+    if (!isOwner && !isAdmin) {
       return sendError(res, 403, "Can't access this resource");
     }
 
     const updates = {};
-    if (status !== undefined) {
+
+    if (isAdmin) {
+      if (status === undefined) {
+        return sendError(res, 400, "No valid fields to update");
+      }
       if (!isValidRequestStatus(status)) {
         return sendError(res, 400, "Invalid request status");
       }
       updates.status = status;
-    }
-    if (message !== undefined) updates.message = message;
-    if (details !== undefined) updates.details = details;
-
-    if (Object.keys(updates).length === 0) {
-      return sendError(res, 400, "No valid fields to update");
+    } else {
+      if (existing.status !== "PENDING") {
+        return sendError(
+          res,
+          400,
+          "Only pending requests can be updated",
+        );
+      }
+      if (reason === undefined) {
+        return sendError(res, 400, "No valid fields to update");
+      }
+      const trimmedReason = String(reason).trim();
+      if (!trimmedReason) {
+        return sendError(res, 400, "Reason cannot be empty");
+      }
+      updates.reason = trimmedReason;
     }
 
     const updated = await updateRequest(id, updates);
 
     return sendSuccess(res, 200, "Request updated successfully", {
-      request: {
-        id: updated.id,
-        userId: updated.userId,
-        type: updated.type,
-        status: updated.status,
-        message: updated.message,
-        details: updated.details,
-        createdAt: updated.createdAt,
-        updatedAt: updated.updatedAt,
-      },
+      request: formatRequestForApi(updated),
     });
   } catch (error) {
     return next(error);

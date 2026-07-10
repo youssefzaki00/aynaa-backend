@@ -40,27 +40,47 @@ describe('Requests API', () => {
 
     const otherRequest = await RequestModel.create({
       userId: otherUserId,
-      type: 'UNINSTALL',
-      message: `other ${runId}`,
+      reason: `other uninstall ${runId}`,
     });
     otherRequestId = otherRequest._id.toString();
     track('requests', otherRequest._id);
   });
 
   describe('POST /api/v1/requests', () => {
-    test('should create request with user auth', async () => {
+    test('should create uninstall request with user auth', async () => {
       const res = await request(app)
         .post('/api/v1/requests')
         .auth(userToken, { type: 'bearer' })
         .send({
-          type: 'UNINSTALL',
-          message: `please uninstall ${runId}`,
+          reason: `please uninstall ${runId}`,
         });
 
       expect(res.statusCode).toBe(201);
       expect(res.body.data.request.userId).toBe(userId);
+      expect(res.body.data.request.reason).toBe(`please uninstall ${runId}`);
+      expect(res.body.data.request.status).toBe('PENDING');
       requestId = res.body.data.request.id;
       track('requests', requestId);
+    });
+
+    test('should reject duplicate pending request for same user', async () => {
+      const res = await request(app)
+        .post('/api/v1/requests')
+        .auth(userToken, { type: 'bearer' })
+        .send({
+          reason: 'duplicate attempt',
+        });
+
+      expect(res.statusCode).toBe(409);
+    });
+
+    test('should require reason', async () => {
+      const res = await request(app)
+        .post('/api/v1/requests')
+        .auth(userToken, { type: 'bearer' })
+        .send({});
+
+      expect(res.statusCode).toBe(400);
     });
   });
 
@@ -80,6 +100,7 @@ describe('Requests API', () => {
       expect(res.body.data.items.length).toBeGreaterThan(0);
       expect(res.body.data.pagination.page).toBe(1);
       expect(Array.isArray(res.body.data.deleted)).toBe(true);
+      expect(res.body.data.items[0]).toHaveProperty('reason');
     });
 
     test('should return 403 when querying another userId', async () => {
@@ -128,23 +149,51 @@ describe('Requests API', () => {
   });
 
   describe('PATCH /api/v1/requests/:id', () => {
-    test('should update own request', async () => {
+    test('should update own pending request reason', async () => {
       const res = await request(app)
         .patch(`/api/v1/requests/${requestId}`)
         .auth(userToken, { type: 'bearer' })
-        .send({ message: `updated ${runId}` });
+        .send({ reason: `updated ${runId}` });
 
       expect(res.statusCode).toBe(200);
-      expect(res.body.data.request.message).toBe(`updated ${runId}`);
+      expect(res.body.data.request.reason).toBe(`updated ${runId}`);
+    });
+
+    test('should block user from updating status', async () => {
+      const res = await request(app)
+        .patch(`/api/v1/requests/${requestId}`)
+        .auth(userToken, { type: 'bearer' })
+        .send({ status: 'APPROVED' });
+
+      expect(res.statusCode).toBe(400);
     });
 
     test('should block updating another user request', async () => {
       const res = await request(app)
         .patch(`/api/v1/requests/${otherRequestId}`)
         .auth(userToken, { type: 'bearer' })
-        .send({ message: 'unauthorized' });
+        .send({ reason: 'unauthorized' });
 
       expect(res.statusCode).toBe(403);
+    });
+
+    test('should let admin update status only', async () => {
+      const res = await request(app)
+        .patch(`/api/v1/requests/${requestId}`)
+        .auth(adminToken, { type: 'bearer' })
+        .send({ status: 'APPROVED' });
+
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.request.status).toBe('APPROVED');
+    });
+
+    test('should block user from updating non-pending request', async () => {
+      const res = await request(app)
+        .patch(`/api/v1/requests/${requestId}`)
+        .auth(userToken, { type: 'bearer' })
+        .send({ reason: 'too late' });
+
+      expect(res.statusCode).toBe(400);
     });
   });
 

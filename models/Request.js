@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { REQUEST_STATUSES } = require('../config/constant');
+const { REQUEST_STATUSES, VALIDATION_LIMITS } = require('../config/constant');
 
 const requestSchema = new mongoose.Schema(
   {
@@ -8,24 +8,16 @@ const requestSchema = new mongoose.Schema(
       required: [true, 'User ID is required'],
       ref: 'User',
     },
-    type: {
+    reason: {
       type: String,
-      enum: ['UNINSTALL'],
-      required: [true, 'Request type is required'],
+      required: [true, 'Reason is required'],
+      trim: true,
+      maxlength: VALIDATION_LIMITS.MAX_STRING_LENGTH,
     },
     status: {
       type: String,
       enum: REQUEST_STATUSES,
       default: 'PENDING',
-    },
-    message: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-    },
-    details: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
     },
   },
   {
@@ -41,12 +33,8 @@ const requestSchema = new mongoose.Schema(
   },
 );
 
-// GET /requests — user's own list
 requestSchema.index({ userId: 1, createdAt: -1 });
-// Filter by type (user or admin)
-requestSchema.index({ userId: 1, type: 1, createdAt: -1 });
-requestSchema.index({ type: 1, createdAt: -1 });
-// Admin: all requests, newest first
+requestSchema.index({ userId: 1, status: 1 });
 requestSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Request', requestSchema);

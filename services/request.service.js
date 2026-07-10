@@ -6,12 +6,19 @@ exports.createRequest = async (payload) => {
   return request;
 };
 
-exports.getRequests = async ({ userId, type, search, page = 1, limit = 20 }) => {
+exports.findPendingByUser = async (userId) => {
+  const request = await Request.findOne({
+    userId,
+    status: 'PENDING',
+  });
+  return request;
+};
+
+exports.getRequests = async ({ userId, search, page = 1, limit = 20 }) => {
   const filter = {};
   if (userId) filter.userId = userId;
-  if (type) filter.type = type;
 
-  applySearchFilter(filter, search, ['type', 'message']);
+  applySearchFilter(filter, search, ['reason']);
 
   const total = await Request.countDocuments(filter);
   const skip = (page - 1) * limit;

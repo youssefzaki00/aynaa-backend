@@ -2,15 +2,10 @@
   get:
     tags: [Requests]
     summary: List all requests
-    description: Admins see all requests; supports filtering by user, type, and search.
+    description: Admins see all requests; supports filtering by user and search.
     security:
       - bearerAuth: []
     parameters:
-      - name: type
-        in: query
-        schema:
-          type: string
-          enum: [UNINSTALL]
       - name: userId
         in: query
         schema:
@@ -48,7 +43,7 @@
 /requests/{id}:
   patch:
     tags: [Requests]
-    summary: Review / update request
+    summary: Review request (status only)
     security:
       - bearerAuth: []
     parameters:
@@ -58,14 +53,11 @@
         application/json:
           schema:
             type: object
+            required: [status]
             properties:
               status:
                 type: string
                 enum: [PENDING, APPROVED, REJECTED]
-              message:
-                type: string
-              details:
-                type: object
     responses:
       '200':
         $ref: '#/components/responses/Success'

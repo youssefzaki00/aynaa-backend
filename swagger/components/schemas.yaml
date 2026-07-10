@@ -93,10 +93,8 @@ Request:
   properties:
     id: { type: string }
     userId: { type: string }
-    type: { type: string, enum: [UNINSTALL] }
+    reason: { type: string, maxLength: 500 }
     status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
-    message: { type: string }
-    details: { type: object }
     createdAt: { type: string, format: date-time }
     updatedAt: { type: string, format: date-time }
 
