@@ -14,7 +14,7 @@
             properties:
               reason:
                 type: string
-                maxLength: 500
+                maxLength: 2000
     responses:
       '201':
         description: Request created
@@ -93,7 +93,7 @@
             properties:
               reason:
                 type: string
-                maxLength: 500
+                maxLength: 2000
     responses:
       '200':
         $ref: '#/components/responses/Success'

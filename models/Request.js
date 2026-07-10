@@ -12,7 +12,7 @@ const requestSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Reason is required'],
       trim: true,
-      maxlength: VALIDATION_LIMITS.MAX_STRING_LENGTH,
+      maxlength: VALIDATION_LIMITS.MAX_REQUEST_REASON_LENGTH,
     },
     status: {
       type: String,
